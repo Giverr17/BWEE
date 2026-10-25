@@ -3,6 +3,8 @@
 use Livewire\Volt\Component;
 use App\Models\FaqItem;
 use Illuminate\Validation\Rule;
+use App\Services\DeepLTranslator;
+use Illuminate\Support\Facades\RateLimiter;
 
 new class extends Component
 {
@@ -14,6 +16,11 @@ new class extends Component
     public $question_fr = '';
     public $answer_en = '';
     public $answer_fr = '';
+
+    // Live French translation
+    public $autoOn = true;
+    public $touched = [];      // fields where a person has typed French by hand
+    public $translateNote = '';
     public $sort_order = 0;
     public $is_active = true;
 
@@ -49,6 +56,12 @@ new class extends Component
         $this->answer_fr = $item->getTranslation('answer', 'fr', false);
         $this->sort_order = $item->sort_order;
         $this->is_active = $item->is_active;
+        // Existing French counts as hand-written: never overwrite it automatically.
+        $this->touched = [
+            'question' => filled($this->question_fr),
+            'answer' => filled($this->answer_fr),
+        ];
+        $this->translateNote = '';
         $this->isEditing = true;
     }
 
@@ -75,6 +88,43 @@ new class extends Component
         $this->dispatch('notify', 'FAQ item saved.');
     }
 
+    protected function runTranslate(string $field): void
+    {
+        $english = trim((string) $this->{$field.'_en'});
+
+        if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 5) {
+            return;
+        }
+
+        // At most 40 automatic translations per minute per admin.
+        $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 40, fn () => true, 60);
+        if (! $allowed) {
+            $this->translateNote = 'Too many automatic translations. Wait a minute or type the French yourself.';
+
+            return;
+        }
+
+        $result = app(DeepLTranslator::class)->translate([$field => $english]);
+
+        if ($result === null || ! isset($result[$field])) {
+            $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
+
+            return;
+        }
+
+        $this->{$field.'_fr'} = $result[$field];
+        $this->translateNote = '';
+    }
+
+    public function updatedQuestionEn() { $this->runTranslate('question'); }
+
+    public function updatedAnswerEn() { $this->runTranslate('answer'); }
+
+    // Typing French by hand switches auto-translate off for that field; clearing it switches it back on.
+    public function updatedQuestionFr($value) { $this->touched['question'] = filled($value); }
+
+    public function updatedAnswerFr($value) { $this->touched['answer'] = filled($value); }
+
     public function delete($id)
     {
         FaqItem::findOrFail($id)->delete();
@@ -84,7 +134,7 @@ new class extends Component
 
     public function resetForm()
     {
-        $this->reset(['question_en', 'question_fr', 'answer_en', 'answer_fr', 'sort_order', 'is_active', 'isEditing', 'editingId']);
+        $this->reset(['question_en', 'question_fr', 'answer_en', 'answer_fr', 'touched', 'translateNote', 'sort_order', 'is_active', 'isEditing', 'editingId']);
         $this->is_active = true;
     }
 };
@@ -105,29 +155,39 @@ new class extends Component
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Question (English)</label>
-                        <input type="text" wire:model="question_en" class="input @error('question_en') is-invalid @enderror">
+                        <input type="text" wire:model.live.debounce.1000ms="question_en" class="input @error('question_en') is-invalid @enderror">
                         @error('question_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Answer (English)</label>
-                        <textarea wire:model="answer_en" rows="5" class="input @error('answer_en') is-invalid @enderror" style="resize:vertical"></textarea>
+                        <textarea wire:model.live.debounce.1000ms="answer_en" rows="5" class="input @error('answer_en') is-invalid @enderror" style="resize:vertical"></textarea>
                         @error('answer_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Question (Français)</label>
-                        <input type="text" wire:model="question_fr" class="input @error('question_fr') is-invalid @enderror">
+                        <input type="text" wire:model.live.blur="question_fr" class="input @error('question_fr') is-invalid @enderror">
                         @error('question_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Réponse (Français)</label>
-                        <textarea wire:model="answer_fr" rows="5" class="input @error('answer_fr') is-invalid @enderror" style="resize:vertical"></textarea>
+                        <textarea wire:model.live.blur="answer_fr" rows="5" class="input @error('answer_fr') is-invalid @enderror" style="resize:vertical"></textarea>
                         @error('answer_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
-            <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Leave the French fields empty to show the English text on the French site.</p>
+            <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+                <label class="check" style="margin-top:0">
+                    <input type="checkbox" wire:model="autoOn">
+                    Auto-translate English to French as I type (draft, review before saving)
+                </label>
+                <span wire:loading wire:target="question_en,answer_en" style="color:var(--muted);font-size:.8rem">Translating...</span>
+            </div>
+            @if ($translateNote)
+                <p class="field-error" style="margin-top:8px">{{ $translateNote }}</p>
+            @endif
+            <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Leave the French fields empty to show the English text on the French site. French you type yourself is never overwritten.</p>
 
             <div style="display:flex;gap:20px;align-items:flex-end;margin-top:18px">
                 <div class="field" style="margin-top:0">

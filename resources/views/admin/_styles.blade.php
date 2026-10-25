@@ -60,7 +60,7 @@ button{font-family:inherit}
 
 /* ===== Admin shell ===== */
 .adm{min-height:100vh;display:grid;grid-template-columns:250px 1fr}
-.adm-side{background:var(--purple-deep);color:#FBF7F1;padding:24px 16px;display:flex;flex-direction:column;gap:24px}
+.adm-side{background:var(--purple-deep);color:#FBF7F1;padding:24px 16px;display:flex;flex-direction:column;gap:24px;position:sticky;top:0;height:100vh;overflow-y:auto}
 .adm-brand{font-family:'Fraunces',serif;font-size:1.25rem;font-weight:600;padding:0 10px}
 .adm-brand span{color:var(--gold)}
 .adm-nav{display:flex;flex-direction:column;gap:2px}
@@ -70,7 +70,7 @@ button{font-family:inherit}
 .adm-link.soon{opacity:.45;pointer-events:none}
 .adm-pill{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;border:1px solid rgba(251,247,241,.3);border-radius:99px;padding:2px 7px}
 .adm-main{display:flex;flex-direction:column;min-width:0}
-.adm-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 32px;border-bottom:1px solid var(--line);background:#fff}
+.adm-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 32px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:40}
 .adm-top h1{font-size:1.4rem}
 .adm-user{display:flex;align-items:center;gap:14px;font-size:.85rem;color:var(--muted)}
 .btn-ghost{background:none;border:1.5px solid var(--line);border-radius:8px;padding:8px 14px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--ink)}

@@ -22,19 +22,27 @@ return [
         'video' => 'Vidéo',
         'photo_tag' => 'Photo',
         'recorded_on' => 'Enregistré le :',
+        'photos' => '{1} 1 photo|[2,*] :count photos',
     ],
 
     'empty' => [
-        'founders' => 'Aucun profil de cofondatrice n’est disponible pour le moment.',
-        'programs' => 'Aucun programme n’est répertorié pour le moment.',
-        'events' => 'Aucun événement n’est prévu pour le moment.',
+        'founders' => "Aucun profil de cofondatrice n'est disponible pour le moment.",
+        'programs' => "Aucun programme n'est répertorié pour le moment.",
+        'events' => "Aucun événement n'est prévu pour le moment.",
         'partners' => 'Aucun partenaire répertorié pour le moment.',
         'gallery' => 'Enregistrements et moments forts à venir',
     ],
 
     'messages' => [
         'contact_success' => 'Merci ! Votre message a bien été reçu. Nous vous répondrons sous peu.',
-        'newsletter_success' => 'Merci de votre inscription à l’infolettre de BWEE !',
+        'newsletter_success' => "Merci de votre inscription à l'infolettre de BWEE !",
+    ],
+
+    'lightbox' => [
+        'close' => 'Fermer',
+        'previous' => 'Photo précédente',
+        'next' => 'Photo suivante',
+        'of' => 'sur',
     ],
 
 ];

@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="{{ asset('images/bwee-logo.svg') }}">
   @vite(['resources/css/app.css', 'resources/js/app.js'])
+  @livewireStyles
 </head>
 
 <body data-page="{{ request()->routeIs('home') ? 'home' : 'subpage' }}">
@@ -145,6 +146,7 @@
     </div>
   </footer>
 
+  @livewireScripts
 </body>
 
 </html>

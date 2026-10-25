@@ -18,7 +18,8 @@ return new class extends Migration
             $table->enum('type', ['photo', 'video'])->default('photo');
             $table->json('title')->nullable();
             $table->json('caption')->nullable();
-            $table->string('photo_path')->nullable();  // storage/public path for photos
+            $table->string('photo_path')->nullable();  // cover image path
+            $table->json('photos')->nullable();           // ordered array of storage paths for album
             $table->string('youtube_id')->nullable();  // YouTube video ID for embeds
             $table->foreignId('event_id')->nullable()->constrained('events')->nullOnDelete();
             $table->date('recorded_at')->nullable();   // date of event/recording

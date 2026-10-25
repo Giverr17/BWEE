@@ -28,4 +28,11 @@ return [
         'button' => 'Proposer une collaboration',
     ],
 
+    'speakers_heading' => 'Intervenantes d’honneur',
+    'speakers_count' => '{1} 1 intervenante|[2,*] :count intervenantes',
+    'details_modal_title' => 'Détails de l’événement',
+    'learn_more' => 'En savoir plus',
+    'close' => 'Fermer',
+    'watch_session' => 'Regarder la session',
+
 ];

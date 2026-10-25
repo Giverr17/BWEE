@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\RoadmapItem;
+use App\Services\DeepLTranslator;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Volt\Component;
 
 new class extends Component
@@ -29,6 +31,14 @@ new class extends Component
 
     public $is_active = true;
 
+    public $autoOn = true;
+
+    public $touched = [];
+
+    public $translateNote = '';
+
+    protected array $translatable = ['title', 'description'];
+
     public function rules()
     {
         return [
@@ -54,6 +64,12 @@ new class extends Component
         $this->items = RoadmapItem::orderBy('sort_order')->get();
     }
 
+    public function openBlank()
+    {
+        $this->resetForm();
+        $this->isEditing = true;
+    }
+
     public function edit($id)
     {
         $item = RoadmapItem::findOrFail($id);
@@ -67,6 +83,11 @@ new class extends Component
         $this->colour = $item->colour;
         $this->sort_order = $item->sort_order;
         $this->is_active = $item->is_active;
+        $this->touched = [
+            'title' => filled($this->title_fr),
+            'description' => filled($this->description_fr),
+        ];
+        $this->translateNote = '';
         $this->isEditing = true;
     }
 
@@ -102,6 +123,48 @@ new class extends Component
         $this->dispatch('notify', 'Roadmap item saved.');
     }
 
+    protected function runTranslate(string $field): void
+    {
+        $english = trim((string) $this->{$field.'_en'});
+
+        if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 3) {
+            return;
+        }
+
+        $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
+        if (! $allowed) {
+            $this->translateNote = 'Too many automatic translations. Wait a minute or type the French yourself.';
+
+            return;
+        }
+
+        $result = app(DeepLTranslator::class)->translate([$field => $english]);
+
+        if ($result === null || ! isset($result[$field])) {
+            $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
+
+            return;
+        }
+
+        $this->{$field.'_fr'} = $result[$field];
+        $this->translateNote = '';
+    }
+
+    public function updated($name, $value)
+    {
+        if (str_ends_with($name, '_en')) {
+            $base = substr($name, 0, -3);
+            if (in_array($base, $this->translatable, true)) {
+                $this->runTranslate($base);
+            }
+        } elseif (str_ends_with($name, '_fr')) {
+            $base = substr($name, 0, -3);
+            if (in_array($base, $this->translatable, true)) {
+                $this->touched[$base] = filled($value);
+            }
+        }
+    }
+
     public function delete($id)
     {
         RoadmapItem::findOrFail($id)->delete();
@@ -111,7 +174,7 @@ new class extends Component
 
     public function resetForm()
     {
-        $this->reset(['slug', 'title_en', 'title_fr', 'description_en', 'description_fr', 'icon', 'colour', 'sort_order', 'is_active', 'isEditing', 'editingId']);
+        $this->reset(['slug', 'title_en', 'title_fr', 'description_en', 'description_fr', 'icon', 'colour', 'sort_order', 'is_active', 'isEditing', 'editingId', 'touched', 'translateNote']);
         $this->is_active = true;
     }
 };
@@ -120,7 +183,7 @@ new class extends Component
 <div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <p style="color:var(--muted);font-size:.9rem">{{ count($items) }} item{{ count($items) === 1 ? '' : 's' }}</p>
-        <button wire:click="{{ $isEditing ? 'resetForm' : '$set(\'isEditing\', true)' }}" class="btn-primary" style="width:auto;margin-top:0">
+        <button wire:click="{{ $isEditing ? 'resetForm' : 'openBlank' }}" class="btn-primary" style="width:auto;margin-top:0">
             {{ $isEditing ? 'Cancel' : 'Add Roadmap Item' }}
         </button>
     </div>
@@ -132,29 +195,39 @@ new class extends Component
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Title (English)</label>
-                        <input type="text" wire:model="title_en" class="input @error('title_en') is-invalid @enderror">
+                        <input type="text" wire:model.live.debounce.300ms="title_en" class="input @error('title_en') is-invalid @enderror">
                         @error('title_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Description (English)</label>
-                        <textarea wire:model="description_en" rows="4" class="input @error('description_en') is-invalid @enderror" style="resize:vertical"></textarea>
+                        <textarea wire:model.live.debounce.300ms="description_en" rows="4" class="input @error('description_en') is-invalid @enderror" style="resize:vertical"></textarea>
                         @error('description_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Titre (Français)</label>
-                        <input type="text" wire:model="title_fr" class="input @error('title_fr') is-invalid @enderror">
+                        <input type="text" wire:model.live.blur="title_fr" class="input @error('title_fr') is-invalid @enderror">
                         @error('title_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Description (Français)</label>
-                        <textarea wire:model="description_fr" rows="4" class="input @error('description_fr') is-invalid @enderror" style="resize:vertical"></textarea>
+                        <textarea wire:model.live.blur="description_fr" rows="4" class="input @error('description_fr') is-invalid @enderror" style="resize:vertical"></textarea>
                         @error('description_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
-            <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Leave the French fields empty to show the English text on the French site.</p>
+            <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+                <label class="check" style="margin-top:0">
+                    <input type="checkbox" wire:model="autoOn">
+                    Auto-translate English to French as I type (draft, review before saving)
+                </label>
+                <span wire:loading wire:target="title_en,description_en" style="color:var(--muted);font-size:.8rem">Translating...</span>
+            </div>
+            @if ($translateNote)
+                <p class="field-error" style="margin-top:8px">{{ $translateNote }}</p>
+            @endif
+            <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Leave the French fields empty to show the English text on the French site. French you type yourself is never overwritten.</p>
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:16px">
                 <div class="field" style="margin-top:0">

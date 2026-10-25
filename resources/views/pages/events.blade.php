@@ -69,4 +69,6 @@
     <a href="{{ route('contact') }}" class="btn btn-primary" style="display: inline-block;">{{ __('events.cta.button') }} &rarr;</a>
   </div>
 </section>
+
+@include('partials.event-modal')
 @endsection

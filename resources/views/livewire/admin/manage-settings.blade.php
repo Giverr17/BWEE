@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\SiteSetting;
+use App\Services\DeepLTranslator;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
@@ -13,6 +15,12 @@ new class extends Component
     public $values = [];
 
     public $files = [];
+
+    public $autoOn = true;
+
+    public $touched = [];
+
+    public $translateNote = '';
 
     public function mount()
     {
@@ -28,6 +36,13 @@ new class extends Component
                 $this->values[$setting->id] = $setting->value;
             }
         }
+
+        foreach ($settings as $setting) {
+            if (str_ends_with($setting->key, '_fr')) {
+                $this->touched[$setting->id] = filled($this->values[$setting->id] ?? null);
+            }
+        }
+        $this->translateNote = '';
     }
 
     public function save()
@@ -55,6 +70,70 @@ new class extends Component
         $this->files = [];
         $this->loadValues();
         $this->dispatch('notify', 'Settings saved.');
+    }
+
+    protected function runTranslate(int $baseId): void
+    {
+        $base = SiteSetting::find($baseId);
+        if (! $base) {
+            return;
+        }
+
+        $twin = SiteSetting::where('key', $base->key.'_fr')->first();
+        if (! $twin) {
+            return;
+        }
+
+        $english = trim((string) ($this->values[$base->id] ?? ''));
+
+        if (! $this->autoOn || ($this->touched[$twin->id] ?? false) || mb_strlen($english) < 3) {
+            return;
+        }
+
+        $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
+        if (! $allowed) {
+            $this->translateNote = 'Too many automatic translations. Wait a minute or type the French yourself.';
+
+            return;
+        }
+
+        $result = app(DeepLTranslator::class)->translate(['setting' => $english]);
+
+        if ($result === null || ! isset($result['setting'])) {
+            $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
+
+            return;
+        }
+
+        $this->values[$twin->id] = $result['setting'];
+        $this->translateNote = '';
+    }
+
+    public function updated($name, $value)
+    {
+        if (preg_match('/^values\.(\d+)$/', $name, $matches)) {
+            $id = (int) $matches[1];
+            $setting = SiteSetting::find($id);
+            if (! $setting) {
+                return;
+            }
+
+            if (str_ends_with($setting->key, '_fr')) {
+                $this->touched[$setting->id] = filled($value);
+
+                return;
+            }
+
+            if (in_array($setting->type, ['image', 'video', 'audio', 'number'], true)) {
+                return;
+            }
+
+            if (str_contains($setting->key, 'email') || str_contains($setting->key, 'url')) {
+                return;
+            }
+
+            $this->runTranslate($id);
+        }
     }
 
     public function with()
@@ -88,6 +167,18 @@ new class extends Component
 ?>
 
 <div>
+    <div style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+        <label class="check" style="margin-top:0">
+            <input type="checkbox" wire:model="autoOn">
+            Auto-translate English to French as I type (draft, review before saving)
+        </label>
+        <span wire:loading wire:target="values" style="color:var(--muted);font-size:.8rem">Translating...</span>
+    </div>
+    @if ($translateNote)
+        <p class="field-error" style="margin-bottom:14px">{{ $translateNote }}</p>
+    @endif
+    <p style="color:var(--muted);font-size:.8rem;margin-bottom:20px">Leave the French fields empty to show the English text on the French site. French you type yourself is never overwritten.</p>
+
     <form wire:submit="save">
         @foreach ($grouped as $groupName => $items)
             <div class="card" style="margin-bottom:20px">
@@ -106,7 +197,7 @@ new class extends Component
                                 @if ($base->type === 'number')
                                     <input type="number" wire:model="values.{{ $base->id }}" class="input" style="max-width:200px">
                                 @else
-                                    <textarea wire:model="values.{{ $base->id }}" rows="3" class="input" style="resize:vertical"></textarea>
+                                    <textarea wire:model.live.debounce.300ms="values.{{ $base->id }}" rows="3" class="input" style="resize:vertical"></textarea>
                                 @endif
                             </div>
                             <div class="field" style="margin-top:0">
@@ -114,7 +205,7 @@ new class extends Component
                                 @if ($twin->type === 'number')
                                     <input type="number" wire:model="values.{{ $twin->id }}" class="input" style="max-width:200px">
                                 @else
-                                    <textarea wire:model="values.{{ $twin->id }}" rows="3" class="input" style="resize:vertical"></textarea>
+                                    <textarea wire:model.live.blur="values.{{ $twin->id }}" rows="3" class="input" style="resize:vertical"></textarea>
                                 @endif
                             </div>
                         </div>

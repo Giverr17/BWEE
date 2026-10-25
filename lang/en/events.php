@@ -28,4 +28,11 @@ return [
         'button' => 'Propose a Collaboration',
     ],
 
+    'speakers_heading' => 'Featured Keynote Speakers',
+    'speakers_count' => '{1} 1 Speaker|[2,*] :count Speakers',
+    'details_modal_title' => 'Event Details',
+    'learn_more' => 'Learn More',
+    'close' => 'Close',
+    'watch_session' => 'Watch Session',
+
 ];

@@ -18,6 +18,16 @@
         </div>
     </div>
 
+    @php
+        $usage = \Illuminate\Support\Facades\Cache::remember('deepl:usage', 600, fn () => app(\App\Services\DeepLTranslator::class)->usage());
+    @endphp
+
+    @if ($usage && isset($usage['used'], $usage['limit']))
+        <p style="margin-top:16px;color:var(--muted);font-size:.85rem">
+            Translation quota: {{ number_format($usage['used']) }} of {{ number_format($usage['limit']) }} characters used this month
+        </p>
+    @endif
+
     <div class="card" style="margin-top:16px">
         <h3>Welcome, {{ auth()->user()->name }}</h3>
         <p style="margin-top:8px;color:var(--muted);line-height:1.6;font-size:.95rem">

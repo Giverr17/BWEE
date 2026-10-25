@@ -22,6 +22,7 @@ return [
         'video' => 'Video',
         'photo_tag' => 'Photo',
         'recorded_on' => 'Recorded on:',
+        'photos' => '{1} 1 photo|[2,*] :count photos',
     ],
 
     'empty' => [
@@ -35,6 +36,13 @@ return [
     'messages' => [
         'contact_success' => 'Thank you! Your message has been received. We will be in touch soon.',
         'newsletter_success' => 'Thank you for subscribing to the BWEE newsletter!',
+    ],
+
+    'lightbox' => [
+        'close' => 'Close',
+        'previous' => 'Previous photo',
+        'next' => 'Next photo',
+        'of' => 'of',
     ],
 
 ];

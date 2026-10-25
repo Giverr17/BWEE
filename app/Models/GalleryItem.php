@@ -20,6 +20,7 @@ class GalleryItem extends Model
         'title',
         'caption',
         'photo_path',
+        'photos',
         'youtube_id',
         'event_id',
         'recorded_at',
@@ -30,6 +31,7 @@ class GalleryItem extends Model
         return [
             'is_active' => 'boolean',
             'recorded_at' => 'date',
+            'photos' => 'array',
         ];
     }
 
@@ -44,15 +46,63 @@ class GalleryItem extends Model
     }
 
     /**
-     * Full public URL for the photo, or null for video-only items.
+     * Cover URL: first photo in the album, or the legacy photo_path, or null.
+     */
+    public function getCoverUrlAttribute(): ?string
+    {
+        $photos = $this->photos ?? [];
+        if (! empty($photos)) {
+            return Storage::disk('public')->url($photos[0]);
+        }
+
+        if ($this->photo_path) {
+            return Storage::disk('public')->url($this->photo_path);
+        }
+
+        return null;
+    }
+
+    /**
+     * Full public URL for the cover photo (legacy accessor, points to cover_url).
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (! $this->photo_path) {
-            return null;
+        return $this->cover_url;
+    }
+
+    /**
+     * Ordered array of public URLs for all photos in the album.
+     *
+     * @return string[]
+     */
+    public function getPhotoUrlsAttribute(): array
+    {
+        $photos = $this->photos ?? [];
+        if (! empty($photos)) {
+            return array_map(
+                fn (string $path) => Storage::disk('public')->url($path),
+                $photos,
+            );
         }
 
-        return Storage::disk('public')->url($this->photo_path);
+        if ($this->photo_path) {
+            return [Storage::disk('public')->url($this->photo_path)];
+        }
+
+        return [];
+    }
+
+    /**
+     * Number of photos in this item (album or single).
+     */
+    public function getPhotoCountAttribute(): int
+    {
+        $photos = $this->photos ?? [];
+        if (! empty($photos)) {
+            return count($photos);
+        }
+
+        return $this->photo_path ? 1 : 0;
     }
 
     /**

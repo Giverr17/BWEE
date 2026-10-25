@@ -259,4 +259,6 @@
 
 {{-- Newsletter Signup (Footer Area) --}}
 @include('partials.newsletter')
+
+@include('partials.event-modal')
 @endsection
