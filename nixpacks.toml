@@ -35,7 +35,7 @@ chmod -R 775 /app/storage /app/bootstrap/cache
 mkdir -p /var/lib/sqlite
 touch /var/lib/sqlite/database.sqlite
 chown -R www-data:www-data /var/lib/sqlite
-chmod 775 /var/lib/sqlite
+chmod 775 /var/lib/sqlite 
 chmod 664 /var/lib/sqlite/database.sqlite
 
 node /assets/scripts/prestart.mjs /assets/nginx.template.conf /etc/nginx.conf
@@ -43,8 +43,9 @@ node /assets/scripts/prestart.mjs /assets/nginx.template.conf /etc/nginx.conf
 if grep -q "client_max_body_size" /etc/nginx.conf; then
     sed -i 's/client_max_body_size[^;]*;/client_max_body_size 50M;/g' /etc/nginx.conf
 else
-    sed -i 's/server {/server {\n        client_max_body_size 50M;/' /etc/nginx.conf
+    sed -i '/root \/app\/public;/a\        client_max_body_size 50M;' /etc/nginx.conf
 fi
+
 php /app/artisan migrate --force
 chown -R www-data:www-data /var/lib/sqlite
 supervisord -c /etc/supervisord.conf -n
