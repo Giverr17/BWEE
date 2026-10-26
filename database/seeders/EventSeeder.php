@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Event;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+// use Illuminate\Support\Facades\DB;
 
 class EventSeeder extends Seeder
 {
@@ -14,9 +14,9 @@ class EventSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        Event::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        // DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // Event::truncate();
+        // DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // Inaugural launch: all values from the brief.
         Event::create([
