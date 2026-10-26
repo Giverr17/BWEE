@@ -30,13 +30,14 @@ mkdir -p /var/log/nginx
 mkdir -p /var/cache/nginx
 chown -R www-data:www-data /app/storage /app/bootstrap/cache
 chmod -R 775 /app/storage /app/bootstrap/cache
+
 # SQLite persistent storage
-m# SQLite persistent storage
 mkdir -p /var/lib/sqlite
 touch /var/lib/sqlite/database.sqlite
 chown -R www-data:www-data /var/lib/sqlite
 chmod 775 /var/lib/sqlite
 chmod 664 /var/lib/sqlite/database.sqlite
+
 node /assets/scripts/prestart.mjs /assets/nginx.template.conf /etc/nginx.conf
 # Fix HTTP 413 on uploads: raise nginx body-size limit to match PHP (50M).
 if grep -q "client_max_body_size" /etc/nginx.conf; then
