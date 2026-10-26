@@ -42,7 +42,7 @@ else
     sed -i 's/server {/server {\n        client_max_body_size 50M;/' /etc/nginx.conf
 fi
 php /app/artisan migrate --force
-chown -R www-data:www-data /data/sqlite
+chown -R www-data:www-data /var/lib/sqlite
 supervisord -c /etc/supervisord.conf -n
 '''
 
