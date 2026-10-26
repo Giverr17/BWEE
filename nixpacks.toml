@@ -38,8 +38,8 @@ chown -R www-data:www-data /var/lib/sqlite
 chmod 775 /var/lib/sqlite 
 chmod 664 /var/lib/sqlite/database.sqlite
 
-node /assets/scripts/prestart.mjs /assets/nginx.template.conf /etc/nginx.conf
-# Fix HTTP 413 on uploads: raise nginx body-size limit to match PHP (50M).
+sed '/\$if(NIXPACKS_PHP_FALLBACK_PATH) (/,/) else ()/d' /assets/nginx.template.conf > /tmp/nginx.template.conf
+node /assets/scripts/prestart.mjs /tmp/nginx.template.conf /etc/nginx.conf# Fix HTTP 413 on uploads: raise nginx body-size limit to match PHP (50M).
 if grep -q "client_max_body_size" /etc/nginx.conf; then
     sed -i 's/client_max_body_size[^;]*;/client_max_body_size 50M;/g' /etc/nginx.conf
 else
