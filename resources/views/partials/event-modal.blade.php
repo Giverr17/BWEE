@@ -101,6 +101,12 @@
                     {{-- Modal Footer Actions --}}
                     <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--line)">
                         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+                            <template x-if="event && event.is_registration_open && event.register_url">
+                                <a :href="event.register_url" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;font-size:0.88rem;padding:8px 16px">
+                                    <span>{{ __('events.register') }}</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            </template>
                             <template x-if="event && event.video_url">
                                 <a :href="event.video_url" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;font-size:0.88rem;padding:8px 16px">
                                     <span>&#9658;</span>

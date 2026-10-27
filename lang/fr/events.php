@@ -34,5 +34,6 @@ return [
     'learn_more' => 'En savoir plus',
     'close' => 'Fermer',
     'watch_session' => 'Regarder la session',
+    'register' => 'S’inscrire',
 
 ];

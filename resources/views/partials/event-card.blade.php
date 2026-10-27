@@ -81,6 +81,14 @@
 
     {{-- Actions / Learn More --}}
     <div style="margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+      @if($event->isRegistrationOpen() && $event->slug)
+        <a href="{{ route('events.register', $event) }}"
+           class="btn btn-primary"
+           style="padding: 6px 14px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          <span>{{ __('events.register') }}</span> &rarr;
+        </a>
+      @endif
+
       <button type="button"
               @click="$dispatch('open-event-modal', {{ Js::from($event->modal_data) }})"
               onclick="window.openEventModal && window.openEventModal({{ Js::from($event->modal_data) }})"

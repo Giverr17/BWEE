@@ -7,11 +7,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "bacon/bacon-qr-code": "^3.1",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "livewire/livewire": "^4.4",
         "livewire/volt": "^1.11",
-        "spatie/laravel-translatable": "^6.15"
+        "spatie/laravel-translatable": "^6.15",
+        "symfony/intl": "^8.1",
+        "symfony/polyfill-intl-icu": "^1.43"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

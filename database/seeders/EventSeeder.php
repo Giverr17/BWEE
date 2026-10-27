@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Schema;
 
 // use Illuminate\Support\Facades\DB;
 
-
 class EventSeeder extends Seeder
 {
     /**
@@ -25,6 +24,8 @@ class EventSeeder extends Seeder
         Event::create([
             'sort_order' => 1,
             'is_active' => true,
+            'slug' => 'inaugural-launch-2026',
+            'registration_open' => false,
             'is_upcoming' => false,
             'title' => [
                 'en' => 'BWEE Global Virtual Launch',

@@ -1,5 +1,8 @@
 @props(['title' => 'Dashboard'])
-@php $unreadMessages = \App\Models\Message::whereNull('read_at')->count(); @endphp
+@php
+    $unreadMessages = \App\Models\Message::whereNull('read_at')->count();
+    $totalRegistrations = \App\Models\EventRegistration::count();
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 
@@ -48,6 +51,13 @@
 
                 <a class="adm-link {{ request()->routeIs('admin.events') ? 'active' : '' }}"
                     href="{{ route('admin.events') }}">Events</a>
+
+                <a class="adm-link {{ request()->routeIs('admin.registrations') ? 'active' : '' }}"
+                    href="{{ route('admin.registrations') }}">
+                    Registrations
+                    <span
+                        style="background:var(--gold);color:var(--purple-deep);font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:99px;line-height:1.4">{{ $totalRegistrations }}</span>
+                </a>
 
                 <a class="adm-link {{ request()->routeIs('admin.gallery') ? 'active' : '' }}"
                     href="{{ route('admin.gallery') }}">Gallery</a>

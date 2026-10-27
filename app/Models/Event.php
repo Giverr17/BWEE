@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 use Spatie\Translatable\HasTranslations;
 
 class Event extends Model
@@ -13,6 +15,8 @@ class Event extends Model
     public array $translatable = ['title', 'tag', 'description', 'date_label', 'location', 'cta_text'];
 
     protected $fillable = [
+        'slug',
+        'registration_open',
         'sort_order',
         'is_active',
         'is_upcoming',
@@ -31,11 +35,70 @@ class Event extends Model
     ];
 
     protected $casts = [
+        'registration_open' => 'boolean',
         'is_active' => 'boolean',
         'is_upcoming' => 'boolean',
         'event_date' => 'date',
         'speakers' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Event $event) {
+            if (empty($event->slug)) {
+                $event->slug = static::generateUniqueSlug($event);
+            }
+        });
+    }
+
+    public static function generateUniqueSlug(Event $event, ?string $title = null): string
+    {
+        $enTitle = $title;
+        if (! $enTitle) {
+            $enTitle = $event->getTranslation('title', 'en', false) ?: $event->title;
+            if (is_array($enTitle)) {
+                $enTitle = $enTitle['en'] ?? reset($enTitle);
+            }
+        }
+
+        $baseSlug = Str::slug((string) $enTitle ?: 'event');
+        if ($baseSlug === '') {
+            $baseSlug = 'event';
+        }
+
+        $slug = $baseSlug;
+        $counter = 1;
+        while (static::where('slug', $slug)->when($event->id, fn ($q) => $q->where('id', '!=', $event->id))->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(EventRegistration::class);
+    }
+
+    /**
+     * Compute whether registration is currently open.
+     * Respects the admin registration_open toggle directly.
+     */
+    public function isRegistrationOpen(): bool
+    {
+        return (bool) $this->registration_open;
+    }
+
+    public function getIsRegistrationOpenAttribute(): bool
+    {
+        return $this->isRegistrationOpen();
+    }
 
     public function scopeActive($query)
     {
@@ -68,7 +131,7 @@ class Event extends Model
     /**
      * Formatted speakers with resolved localized titles and public image URLs.
      *
-     * @return array<int, array{name: string, title: string, image: ?string, image_url: ?string}>
+     * @return array<int, array{name: string, title: string, image: ?string, image_url: ?string, initials: string}>
      */
     public function getFormattedSpeakersAttribute(): array
     {
@@ -128,6 +191,9 @@ class Event extends Model
     {
         return [
             'id' => $this->id,
+            'slug' => $this->slug,
+            'is_registration_open' => $this->isRegistrationOpen(),
+            'register_url' => $this->slug ? route('events.register', $this) : null,
             'title' => $this->title,
             'tag' => $this->tag ?? ($this->is_upcoming ? 'Upcoming' : 'Event'),
             'date_label' => $this->date_label,

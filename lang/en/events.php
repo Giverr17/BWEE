@@ -34,5 +34,6 @@ return [
     'learn_more' => 'Learn More',
     'close' => 'Close',
     'watch_session' => 'Watch Session',
+    'register' => 'Register',
 
 ];
