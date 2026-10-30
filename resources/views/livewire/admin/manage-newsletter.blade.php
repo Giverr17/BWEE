@@ -117,7 +117,6 @@ new class extends Component
 
         $sentCount = $toSend->count();
         $this->reset(['subject', 'body']);
-
         $this->refreshStats($mailLog);
 
         $msg = "Message queued for {$sentCount} {$audienceLabel}" . ($sentCount === 1 ? '' : 's') . '.';
@@ -138,7 +137,13 @@ new class extends Component
 ?>
 
 <div>
-    <div class="card" style="max-width: 680px">
+    <div class="card" style="max-width: 680px"
+         x-data="adminForm({
+             formKey: 'newsletter',
+             pairs: []
+         })">
+        @include('admin.draft-restore-bar')
+
         {{-- Stats bar --}}
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; padding: 12px 16px; background: var(--paper); border-radius: 8px; border: 1px solid var(--line);">
             <div>
@@ -221,6 +226,7 @@ new class extends Component
             </div>
 
             <button type="submit" class="btn-primary" style="width:auto;margin-top:22px"
+                    wire:offline.attr="disabled"
                     @if($remainingToday <= 0 || $this->recipientCount === 0) disabled @endif
                     wire:confirm="Send this to {{ min($this->recipientCount, $remainingToday) }} recipient(s)? This cannot be undone.">
                 Send to {{ min($this->recipientCount, $remainingToday) }} {{ $audience === 'event_registrants' ? 'Registrant' : 'Subscriber' }}{{ min($this->recipientCount, $remainingToday) === 1 ? '' : 's' }}

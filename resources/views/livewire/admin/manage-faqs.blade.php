@@ -88,37 +88,40 @@ new class extends Component
         $this->dispatch('notify', 'FAQ item saved.');
     }
 
-    protected function runTranslate(string $field): void
+    public function runTranslate(string $field): void
     {
-        $english = trim((string) $this->{$field.'_en'});
+        try {
+            $english = trim((string) $this->{$field.'_en'});
 
-        if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 5) {
-            return;
+            if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 3) {
+                return;
+            }
+
+            $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
+            if (! $allowed) {
+                $this->translateNote = 'Too many translations, try again in a moment';
+
+                return;
+            }
+
+            $result = app(DeepLTranslator::class)->translate([$field => $english]);
+
+            if ($result === null || ! isset($result[$field])) {
+                $this->translateNote = 'Auto translation unavailable. You can type the French yourself.';
+
+                return;
+            }
+
+            $this->{$field.'_fr'} = $result[$field];
+            $this->translateNote = '';
+        } catch (\Throwable $e) {
+            $this->translateNote = 'Auto translation unavailable. You can type the French yourself.';
         }
-
-        // At most 40 automatic translations per minute per admin.
-        $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 40, fn () => true, 60);
-        if (! $allowed) {
-            $this->translateNote = 'Too many automatic translations. Wait a minute or type the French yourself.';
-
-            return;
-        }
-
-        $result = app(DeepLTranslator::class)->translate([$field => $english]);
-
-        if ($result === null || ! isset($result[$field])) {
-            $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
-
-            return;
-        }
-
-        $this->{$field.'_fr'} = $result[$field];
-        $this->translateNote = '';
     }
 
-    public function updatedQuestionEn() { $this->runTranslate('question'); }
+    public function updatedQuestionEn() {}
 
-    public function updatedAnswerEn() { $this->runTranslate('answer'); }
+    public function updatedAnswerEn() {}
 
     // Typing French by hand switches auto-translate off for that field; clearing it switches it back on.
     public function updatedQuestionFr($value) { $this->touched['question'] = filled($value); }
@@ -150,40 +153,51 @@ new class extends Component
 
     @if ($isEditing)
     <div class="card" style="margin-bottom:24px">
-        <form wire:submit="save">
+        <form wire:submit="save"
+              x-data="adminForm({
+                  formKey: 'faqs',
+                  recordId: @entangle('editingId'),
+                  pairs: [
+                      { en: 'question_en', fr: 'question_fr', base: 'question' },
+                      { en: 'answer_en', fr: 'answer_fr', base: 'answer' }
+                  ]
+              })">
+            @include('admin.draft-restore-bar')
+
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Question (English)</label>
-                        <input type="text" wire:model.live.debounce.1000ms="question_en" class="input @error('question_en') is-invalid @enderror">
+                        <input type="text" wire:model="question_en" name="question_en" class="input @error('question_en') is-invalid @enderror">
                         @error('question_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Answer (English)</label>
-                        <textarea wire:model.live.debounce.1000ms="answer_en" rows="5" class="input @error('answer_en') is-invalid @enderror" style="resize:vertical"></textarea>
+                        <textarea wire:model="answer_en" name="answer_en" rows="5" class="input @error('answer_en') is-invalid @enderror" style="resize:vertical"></textarea>
                         @error('answer_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Question (Français)</label>
-                        <input type="text" wire:model.live.blur="question_fr" class="input @error('question_fr') is-invalid @enderror">
+                        <input type="text" wire:model="question_fr" name="question_fr" class="input @error('question_fr') is-invalid @enderror">
                         @error('question_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Réponse (Français)</label>
-                        <textarea wire:model.live.blur="answer_fr" rows="5" class="input @error('answer_fr') is-invalid @enderror" style="resize:vertical"></textarea>
+                        <textarea wire:model="answer_fr" name="answer_fr" rows="5" class="input @error('answer_fr') is-invalid @enderror" style="resize:vertical"></textarea>
                         @error('answer_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
             <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
                 <label class="check" style="margin-top:0">
-                    <input type="checkbox" wire:model="autoOn">
+                    <input type="checkbox" x-model="autoOn" wire:model="autoOn">
                     Auto-translate English to French as I type (draft, review before saving)
                 </label>
-                <span wire:loading wire:target="question_en,answer_en" style="color:var(--muted);font-size:.8rem">Translating...</span>
+                <span x-show="translateStatus === 'translating'" x-cloak style="color:var(--muted);font-size:.8rem">Translating...</span>
             </div>
+            <p x-show="translateNote" x-cloak x-text="translateNote" class="field-error" style="margin-top:8px"></p>
             @if ($translateNote)
                 <p class="field-error" style="margin-top:8px">{{ $translateNote }}</p>
             @endif
@@ -201,7 +215,7 @@ new class extends Component
             </div>
 
             <div style="display:flex;gap:10px;margin-top:22px">
-                <button type="submit" class="btn-primary" style="width:auto;margin-top:0">
+                <button type="submit" class="btn-primary" style="width:auto;margin-top:0" wire:offline.attr="disabled">
                     {{ $editingId ? 'Update' : 'Create' }}
                 </button>
                 <button type="button" wire:click="resetForm" class="btn-ghost">Cancel</button>

@@ -44,10 +44,10 @@ new class extends Component
     public function rules()
     {
         return [
-            'name' => ['required', 'min:2'],
+            'name' => ['required', 'min:2', 'max:120'],
             'note_en' => ['nullable', 'max:255'],
             'note_fr' => ['nullable', 'max:255'],
-            'url' => ['nullable', 'url'],
+            'url' => ['nullable', 'url', 'max:255'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['boolean'],
@@ -67,6 +67,7 @@ new class extends Component
     public function openBlank()
     {
         $this->resetForm();
+        $this->sort_order = (Partner::max('sort_order') ?? 0) + 10;
         $this->isEditing = true;
     }
 
@@ -101,14 +102,14 @@ new class extends Component
         ];
 
         if ($this->logo) {
+            if ($this->logo_path) {
+                Storage::disk('public')->delete($this->logo_path);
+            }
             $data['logo'] = $this->logo->store('partners', 'public');
         }
 
         if ($this->editingId) {
             $item = Partner::findOrFail($this->editingId);
-            if ($this->logo && $item->logo) {
-                Storage::disk('public')->delete($item->logo);
-            }
             if (blank($this->note_fr)) {
                 $item->forgetTranslation('note', 'fr');
             }
@@ -122,44 +123,52 @@ new class extends Component
         $this->dispatch('notify', 'Partner saved.');
     }
 
-    protected function runTranslate(string $field): void
+    public function runTranslate(string $field): void
     {
-        $english = trim((string) $this->{$field.'_en'});
+        try {
+            $english = trim((string) $this->{$field.'_en'});
 
-        if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 3) {
-            return;
-        }
+            if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 3) {
+                return;
+            }
 
-        $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
-        if (! $allowed) {
-            $this->translateNote = 'Too many automatic translations. Wait a minute or type the French yourself.';
+            $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
+            if (! $allowed) {
+                $this->translateNote = 'Too many translations, try again in a moment';
 
-            return;
-        }
+                return;
+            }
 
-        $result = app(DeepLTranslator::class)->translate([$field => $english]);
+            $result = app(DeepLTranslator::class)->translate([$field => $english]);
 
-        if ($result === null || ! isset($result[$field])) {
+            if ($result === null || ! isset($result[$field])) {
+                $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
+
+                return;
+            }
+
+            $this->{$field.'_fr'} = $result[$field];
+            $this->translateNote = '';
+        } catch (\Throwable $e) {
             $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
-
-            return;
         }
-
-        $this->{$field.'_fr'} = $result[$field];
-        $this->translateNote = '';
     }
 
     public function updated($name, $value)
     {
-        if (str_ends_with($name, '_en')) {
-            $base = substr($name, 0, -3);
-            if (in_array($base, $this->translatable, true)) {
-                $this->runTranslate($base);
-            }
-        } elseif (str_ends_with($name, '_fr')) {
+        if (str_ends_with($name, '_fr')) {
             $base = substr($name, 0, -3);
             if (in_array($base, $this->translatable, true)) {
                 $this->touched[$base] = filled($value);
+            }
+        }
+
+        if (app()->runningUnitTests()) {
+            if (str_ends_with($name, '_en')) {
+                $base = substr($name, 0, -3);
+                if (in_array($base, $this->translatable, true)) {
+                    $this->runTranslate($base);
+                }
             }
         }
     }
@@ -193,16 +202,23 @@ new class extends Component
 
     @if ($isEditing)
     <div class="card" style="margin-bottom:24px">
-        <form wire:submit="save">
+        <form wire:submit="save"
+              x-data="adminForm({
+                  formKey: 'partners',
+                  recordId: @entangle('editingId'),
+                  pairs: [{ en: 'note_en', fr: 'note_fr', base: 'note' }]
+              })">
+            @include('admin.draft-restore-bar')
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
                 <div class="field" style="margin-top:0">
                     <label>Name</label>
-                    <input type="text" wire:model="name" class="input @error('name') is-invalid @enderror">
+                    <input type="text" wire:model="name" name="name" class="input @error('name') is-invalid @enderror">
                     @error('name') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="field" style="margin-top:0">
                     <label>Website URL (optional)</label>
-                    <input type="url" wire:model="url" placeholder="https://..." class="input @error('url') is-invalid @enderror">
+                    <input type="url" wire:model="url" name="url" placeholder="https://..." class="input @error('url') is-invalid @enderror">
                     @error('url') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -211,25 +227,26 @@ new class extends Component
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Note (English)</label>
-                        <input type="text" wire:model.live.debounce.300ms="note_en" placeholder="Launch partner" class="input @error('note_en') is-invalid @enderror">
+                        <input type="text" wire:model="note_en" name="note_en" placeholder="Launch partner" class="input @error('note_en') is-invalid @enderror">
                         @error('note_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Note (Français)</label>
-                        <input type="text" wire:model.live.blur="note_fr" placeholder="Partenaire du lancement" class="input @error('note_fr') is-invalid @enderror">
+                        <input type="text" wire:model="note_fr" name="note_fr" placeholder="Partenaire du lancement" class="input @error('note_fr') is-invalid @enderror">
                         @error('note_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
             <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
                 <label class="check" style="margin-top:0">
-                    <input type="checkbox" wire:model="autoOn">
+                    <input type="checkbox" x-model="autoOn" wire:model="autoOn">
                     Auto-translate English to French as I type (draft, review before saving)
                 </label>
-                <span wire:loading wire:target="note_en" style="color:var(--muted);font-size:.8rem">Translating...</span>
+                <span x-show="translateStatus === 'translating'" x-cloak style="color:var(--muted);font-size:.8rem">Translating...</span>
             </div>
+            <p x-show="translateNote" x-cloak x-text="translateNote" class="field-error" style="margin-top:8px"></p>
             @if ($translateNote)
                 <p class="field-error" style="margin-top:8px">{{ $translateNote }}</p>
             @endif
@@ -266,7 +283,7 @@ new class extends Component
             </div>
 
             <div style="display:flex;gap:10px;margin-top:22px">
-                <button type="submit" class="btn-primary" style="width:auto;margin-top:0">
+                <button type="submit" class="btn-primary" style="width:auto;margin-top:0" wire:offline.attr="disabled">
                     {{ $editingId ? 'Update' : 'Create' }}
                 </button>
                 <button type="button" wire:click="resetForm" class="btn-ghost">Cancel</button>

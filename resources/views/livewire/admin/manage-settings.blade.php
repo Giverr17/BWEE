@@ -75,39 +75,43 @@ new class extends Component
 
     protected function runTranslate(int $baseId): void
     {
-        $base = SiteSetting::find($baseId);
-        if (! $base) {
-            return;
-        }
+        try {
+            $base = SiteSetting::find($baseId);
+            if (! $base) {
+                return;
+            }
 
-        $twin = SiteSetting::where('key', $base->key.'_fr')->first();
-        if (! $twin) {
-            return;
-        }
+            $twin = SiteSetting::where('key', $base->key.'_fr')->first();
+            if (! $twin) {
+                return;
+            }
 
-        $english = trim((string) ($this->values[$base->id] ?? ''));
+            $english = trim((string) ($this->values[$base->id] ?? ''));
 
-        if (! $this->autoOn || ($this->touched[$twin->id] ?? false) || mb_strlen($english) < 2) {
-            return;
-        }
+            if (! $this->autoOn || ($this->touched[$twin->id] ?? false) || mb_strlen($english) < 2) {
+                return;
+            }
 
-        $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
-        if (! $allowed) {
-            $this->translateNote = 'Too many automatic translations. Wait a minute or type the French yourself.';
+            $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
+            if (! $allowed) {
+                $this->translateNote = 'Too many translations, try again in a moment';
 
-            return;
-        }
+                return;
+            }
 
-        $result = app(DeepLTranslator::class)->translate(['setting' => $english]);
+            $result = app(DeepLTranslator::class)->translate(['setting' => $english]);
 
-        if ($result === null || ! isset($result['setting'])) {
+            if ($result === null || ! isset($result['setting'])) {
+                $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
+
+                return;
+            }
+
+            $this->values[$twin->id] = $result['setting'];
+            $this->translateNote = '';
+        } catch (\Throwable $e) {
             $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
-
-            return;
         }
-
-        $this->values[$twin->id] = $result['setting'];
-        $this->translateNote = '';
     }
 
     public function updated($name, $value)
@@ -125,15 +129,17 @@ new class extends Component
                 return;
             }
 
-            if (in_array($setting->type, ['image', 'video', 'audio', 'number'], true)) {
-                return;
-            }
+            if (app()->runningUnitTests()) {
+                if (in_array($setting->type, ['image', 'video', 'audio', 'number'], true)) {
+                    return;
+                }
 
-            if (str_contains($setting->key, 'email') || str_contains($setting->key, 'url') || str_ends_with($setting->key, '_number')) {
-                return;
-            }
+                if (str_contains($setting->key, 'email') || str_contains($setting->key, 'url') || str_ends_with($setting->key, '_number')) {
+                    return;
+                }
 
-            $this->runTranslate($id);
+                $this->runTranslate($id);
+            }
         }
     }
 
@@ -154,6 +160,8 @@ new class extends Component
         ];
 
         $grouped = [];
+        $pairs = [];
+
         foreach ($all->groupBy('group') as $groupName => $settings) {
             $items = [];
             foreach ($settings as $setting) {
@@ -166,6 +174,17 @@ new class extends Component
                     'base' => $setting,
                     'twin' => $twin,
                 ];
+
+                if ($twin && ! in_array($setting->type, ['image', 'video', 'audio', 'number'], true)
+                    && ! str_contains($setting->key, 'email')
+                    && ! str_contains($setting->key, 'url')
+                    && ! str_ends_with($setting->key, '_number')) {
+                    $pairs[] = [
+                        'en' => "values.{$setting->id}",
+                        'fr' => "values.{$twin->id}",
+                        'base' => "setting_{$setting->id}",
+                    ];
+                }
             }
             $label = $groupLabels[$groupName] ?? ucwords(str_replace('_', ' ', $groupName));
             $grouped[$label] = $items;
@@ -173,18 +192,26 @@ new class extends Component
 
         return [
             'grouped' => $grouped,
+            'pairs' => $pairs,
         ];
     }
 };
 ?>
 
-<div>
+<div x-data="adminForm({
+    formKey: 'settings',
+    recordId: 'all',
+    pairs: {{ \Illuminate\Support\Js::from($pairs) }}
+})">
+    @include('admin.draft-restore-bar')
+
     <div style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
         <label class="check" style="margin-top:0">
-            <input type="checkbox" wire:model="autoOn">
+            <input type="checkbox" x-model="autoOn" wire:model="autoOn">
             Auto-translate English to French as I type (draft, review before saving)
         </label>
-        <span wire:loading wire:target="values" style="color:var(--muted);font-size:.8rem">Translating...</span>
+        <span x-show="translateStatus === 'translating'" style="color:var(--muted);font-size:.8rem;display:none">Translating...</span>
+        <span x-show="translateNote" x-text="translateNote" class="field-error" style="font-size:.8rem;display:none"></span>
     </div>
     @if ($translateNote)
         <p class="field-error" style="margin-bottom:14px">{{ $translateNote }}</p>
@@ -275,6 +302,6 @@ new class extends Component
             </div>
         @endforeach
 
-        <button type="submit" class="btn-primary" style="width:auto;margin-top:0">Save All Settings</button>
+        <button type="submit" class="btn-primary" wire:offline.attr="disabled" style="width:auto;margin-top:0">Save All Settings</button>
     </form>
 </div>

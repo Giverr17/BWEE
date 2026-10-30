@@ -46,7 +46,7 @@
                 {{-- Event Thumbnail Banner --}}
                 <template x-if="event && event.thumbnail_url">
                     <div style="width:100%;height:220px;overflow:hidden;border-top-left-radius:17px;border-top-right-radius:17px;position:relative">
-                        <img :src="event.thumbnail_url" :alt="event ? event.title : ''" style="width:100%;height:100%;object-fit:cover">
+                        <img :src="event.thumbnail_url" :alt="event ? event.title : ''" style="width:100%;height:100%;object-fit:contain">
                     </div>
                 </template>
 

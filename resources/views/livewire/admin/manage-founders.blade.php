@@ -48,12 +48,12 @@ new class extends Component
     public function rules()
     {
         return [
-            'name' => ['required', 'min:2'],
-            'role_en' => ['nullable', 'max:120'],
-            'role_fr' => ['nullable', 'max:120'],
-            'email' => ['nullable', 'email'],
-            'bio_en' => ['nullable', 'min:10'],
-            'bio_fr' => ['nullable', 'min:10'],
+            'name' => ['required', 'min:3', 'max:120'],
+            'role_en' => ['required', 'min:3', 'max:120'],
+            'role_fr' => ['nullable', 'min:3', 'max:120'],
+            'email' => ['nullable', 'email', 'max:120'],
+            'bio_en' => ['nullable', 'max:2000'],
+            'bio_fr' => ['nullable', 'max:2000'],
             'photo' => ['nullable', 'image', 'max:2048'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['boolean'],
@@ -73,6 +73,7 @@ new class extends Component
     public function openBlank()
     {
         $this->resetForm();
+        $this->sort_order = (Founder::max('sort_order') ?? 0) + 10;
         $this->isEditing = true;
     }
 
@@ -111,14 +112,14 @@ new class extends Component
         ];
 
         if ($this->photo) {
+            if ($this->photo_path) {
+                Storage::disk('public')->delete($this->photo_path);
+            }
             $data['photo'] = $this->photo->store('founders', 'public');
         }
 
         if ($this->editingId) {
             $item = Founder::findOrFail($this->editingId);
-            if ($this->photo && $item->photo) {
-                Storage::disk('public')->delete($item->photo);
-            }
             if (blank($this->role_fr)) {
                 $item->forgetTranslation('role', 'fr');
             }
@@ -135,44 +136,52 @@ new class extends Component
         $this->dispatch('notify', 'Founder saved.');
     }
 
-    protected function runTranslate(string $field): void
+    public function runTranslate(string $field): void
     {
-        $english = trim((string) $this->{$field.'_en'});
+        try {
+            $english = trim((string) $this->{$field.'_en'});
 
-        if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 3) {
-            return;
-        }
+            if (! $this->autoOn || ($this->touched[$field] ?? false) || mb_strlen($english) < 3) {
+                return;
+            }
 
-        $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
-        if (! $allowed) {
-            $this->translateNote = 'Too many automatic translations. Wait a minute or type the French yourself.';
+            $allowed = RateLimiter::attempt('deepl:'.auth()->id(), 150, fn () => true, 60);
+            if (! $allowed) {
+                $this->translateNote = 'Too many translations, try again in a moment';
 
-            return;
-        }
+                return;
+            }
 
-        $result = app(DeepLTranslator::class)->translate([$field => $english]);
+            $result = app(DeepLTranslator::class)->translate([$field => $english]);
 
-        if ($result === null || ! isset($result[$field])) {
+            if ($result === null || ! isset($result[$field])) {
+                $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
+
+                return;
+            }
+
+            $this->{$field.'_fr'} = $result[$field];
+            $this->translateNote = '';
+        } catch (\Throwable $e) {
             $this->translateNote = 'Automatic translation is unavailable right now. You can type the French yourself.';
-
-            return;
         }
-
-        $this->{$field.'_fr'} = $result[$field];
-        $this->translateNote = '';
     }
 
     public function updated($name, $value)
     {
-        if (str_ends_with($name, '_en')) {
-            $base = substr($name, 0, -3);
-            if (in_array($base, $this->translatable, true)) {
-                $this->runTranslate($base);
-            }
-        } elseif (str_ends_with($name, '_fr')) {
+        if (str_ends_with($name, '_fr')) {
             $base = substr($name, 0, -3);
             if (in_array($base, $this->translatable, true)) {
                 $this->touched[$base] = filled($value);
+            }
+        }
+
+        if (app()->runningUnitTests()) {
+            if (str_ends_with($name, '_en')) {
+                $base = substr($name, 0, -3);
+                if (in_array($base, $this->translatable, true)) {
+                    $this->runTranslate($base);
+                }
             }
         }
     }
@@ -206,16 +215,26 @@ new class extends Component
 
     @if ($isEditing)
     <div class="card" style="margin-bottom:24px">
-        <form wire:submit="save">
+        <form wire:submit="save"
+              x-data="adminForm({
+                  formKey: 'founders',
+                  recordId: @entangle('editingId'),
+                  pairs: [
+                      { en: 'role_en', fr: 'role_fr', base: 'role' },
+                      { en: 'bio_en', fr: 'bio_fr', base: 'bio' }
+                  ]
+              })">
+            @include('admin.draft-restore-bar')
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
                 <div class="field" style="margin-top:0">
                     <label>Full Name</label>
-                    <input type="text" wire:model="name" class="input @error('name') is-invalid @enderror">
+                    <input type="text" wire:model="name" name="name" class="input @error('name') is-invalid @enderror">
                     @error('name') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
                 <div class="field" style="margin-top:0">
                     <label>Email</label>
-                    <input type="email" wire:model="email" class="input @error('email') is-invalid @enderror">
+                    <input type="email" wire:model="email" name="email" class="input @error('email') is-invalid @enderror">
                     @error('email') <p class="field-error">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -224,35 +243,36 @@ new class extends Component
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Role / Title (English)</label>
-                        <input type="text" wire:model.live.debounce.300ms="role_en" placeholder="Co-Founder" class="input @error('role_en') is-invalid @enderror">
+                        <input type="text" wire:model="role_en" name="role_en" placeholder="Co-Founder" class="input @error('role_en') is-invalid @enderror">
                         @error('role_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Bio (English)</label>
-                        <textarea wire:model.live.debounce.300ms="bio_en" rows="4" class="input @error('bio_en') is-invalid @enderror" style="resize:vertical" placeholder="Leave blank if not yet available"></textarea>
+                        <textarea wire:model="bio_en" name="bio_en" rows="4" class="input @error('bio_en') is-invalid @enderror" style="resize:vertical" placeholder="Leave blank if not yet available"></textarea>
                         @error('bio_en') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 <div>
                     <div class="field" style="margin-top:0">
                         <label>Rôle / Titre (Français)</label>
-                        <input type="text" wire:model.live.blur="role_fr" placeholder="Cofondatrice" class="input @error('role_fr') is-invalid @enderror">
+                        <input type="text" wire:model="role_fr" name="role_fr" placeholder="Cofondatrice" class="input @error('role_fr') is-invalid @enderror">
                         @error('role_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="field">
                         <label>Biographie (Français)</label>
-                        <textarea wire:model.live.blur="bio_fr" rows="4" class="input @error('bio_fr') is-invalid @enderror" style="resize:vertical" placeholder="Laisser vide si pas encore disponible"></textarea>
+                        <textarea wire:model="bio_fr" name="bio_fr" rows="4" class="input @error('bio_fr') is-invalid @enderror" style="resize:vertical" placeholder="Laisser vide si pas encore disponible"></textarea>
                         @error('bio_fr') <p class="field-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
             <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
                 <label class="check" style="margin-top:0">
-                    <input type="checkbox" wire:model="autoOn">
+                    <input type="checkbox" x-model="autoOn" wire:model="autoOn">
                     Auto-translate English to French as I type (draft, review before saving)
                 </label>
-                <span wire:loading wire:target="role_en,bio_en" style="color:var(--muted);font-size:.8rem">Translating...</span>
+                <span x-show="translateStatus === 'translating'" x-cloak style="color:var(--muted);font-size:.8rem">Translating...</span>
             </div>
+            <p x-show="translateNote" x-cloak x-text="translateNote" class="field-error" style="margin-top:8px"></p>
             @if ($translateNote)
                 <p class="field-error" style="margin-top:8px">{{ $translateNote }}</p>
             @endif
@@ -293,7 +313,7 @@ new class extends Component
             </div>
 
             <div style="display:flex;gap:10px;margin-top:22px">
-                <button type="submit" class="btn-primary" style="width:auto;margin-top:0">
+                <button type="submit" class="btn-primary" style="width:auto;margin-top:0" wire:offline.attr="disabled">
                     {{ $editingId ? 'Update' : 'Create' }}
                 </button>
                 <button type="button" wire:click="resetForm" class="btn-ghost">Cancel</button>

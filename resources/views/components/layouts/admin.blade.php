@@ -10,6 +10,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }} · BWEE Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +22,9 @@
 </head>
 
 <body>
+    <div wire:offline class="adm-offline-banner" style="background:#B3261E;color:#fff;padding:10px 16px;text-align:center;font-size:0.85rem;font-weight:600;position:sticky;top:0;z-index:999999;">
+        You are currently offline. Changes are saved locally as drafts. Reconnect to save to server.
+    </div>
     <div class="adm">
         <div class="adm-mobile-header">
             <div class="adm-brand">BWEE<span>.</span> Admin</div>
@@ -149,6 +153,7 @@
     </div>
 
     @livewireScripts
+    @include('admin._scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const toggle = document.getElementById('admNavToggle');

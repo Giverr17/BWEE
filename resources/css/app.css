@@ -837,8 +837,9 @@ section { padding: 84px 0; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   font-size: 0.72rem; color: var(--ink-soft); text-align: center; padding: 10px;
   border-bottom: 1px solid var(--line);
-  background-size: cover;
+  background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
 }
 .event-card.upcoming .event-thumb { background-color: color-mix(in srgb, var(--marigold) 18%, var(--paper-dim)); }
 .event-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
@@ -1153,7 +1154,7 @@ header.header-solid {
 .gallery-img {
   width: 100%;
   height: 220px;
-  object-fit: cover;
+  object-fit: contain;
 }
 .gallery-placeholder {
   display: flex;

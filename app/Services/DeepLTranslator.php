@@ -25,45 +25,51 @@ class DeepLTranslator
      */
     public function translate(array $fields): ?array
     {
-        $fields = array_filter($fields, fn ($v) => is_string($v) && trim($v) !== '');
+        try {
+            $fields = array_filter($fields, fn ($v) => is_string($v) && trim($v) !== '');
 
-        if ($fields === []) {
-            return [];
-        }
+            if ($fields === []) {
+                return [];
+            }
 
-        $key = config('services.deepl.key');
-        if (! $key) {
-            Log::warning('DeepLTranslator: DEEPL_API_KEY is missing.');
+            $key = config('services.deepl.key');
+            if (! $key) {
+                Log::warning('DeepLTranslator: DEEPL_API_KEY is missing.');
+
+                return null;
+            }
+
+            $result = [];
+            $pending = [];
+
+            // Same text twice costs nothing: check the cache first.
+            foreach ($fields as $name => $text) {
+                $cached = Cache::get($this->cacheKey($text));
+                if ($cached !== null) {
+                    $result[$name] = $cached;
+                } else {
+                    $pending[$name] = $text;
+                }
+            }
+
+            if ($pending !== []) {
+                $translated = $this->callDeepL($pending, $key);
+                if ($translated === null) {
+                    return null;
+                }
+                foreach ($translated as $name => $french) {
+                    Cache::put($this->cacheKey($pending[$name]), $french, now()->addDay());
+                    $result[$name] = $french;
+                }
+            }
+
+            // Keep the original field order.
+            return array_replace(array_fill_keys(array_keys($fields), null), $result);
+        } catch (\Throwable $e) {
+            Log::warning('DeepLTranslator failed: '.$e->getMessage());
 
             return null;
         }
-
-        $result = [];
-        $pending = [];
-
-        // Same text twice costs nothing: check the cache first.
-        foreach ($fields as $name => $text) {
-            $cached = Cache::get($this->cacheKey($text));
-            if ($cached !== null) {
-                $result[$name] = $cached;
-            } else {
-                $pending[$name] = $text;
-            }
-        }
-
-        if ($pending !== []) {
-            $translated = $this->callDeepL($pending, $key);
-            if ($translated === null) {
-                return null;
-            }
-            foreach ($translated as $name => $french) {
-                Cache::put($this->cacheKey($pending[$name]), $french, now()->addDay());
-                $result[$name] = $french;
-            }
-        }
-
-        // Keep the original field order.
-        return array_replace(array_fill_keys(array_keys($fields), null), $result);
     }
 
     /** Characters used and allowed this month, or null if unavailable. */
@@ -71,6 +77,7 @@ class DeepLTranslator
     {
         try {
             $r = Http::withHeaders(['Authorization' => 'DeepL-Auth-Key '.config('services.deepl.key')])
+                ->connectTimeout(3)
                 ->timeout(8)
                 ->get(rtrim(config('services.deepl.url'), '/').'/v2/usage');
 
@@ -89,7 +96,8 @@ class DeepLTranslator
 
         try {
             $response = Http::withHeaders(['Authorization' => 'DeepL-Auth-Key '.$key])
-                ->timeout(15)
+                ->connectTimeout(3)
+                ->timeout(8)
                 ->post(rtrim(config('services.deepl.url'), '/').'/v2/translate', [
                     'text' => $texts,
                     'source_lang' => 'EN',
@@ -105,26 +113,40 @@ class DeepLTranslator
         }
 
         if (! $response->successful()) {
-            Log::warning('DeepLTranslator HTTP '.$response->status().': '.$response->body());
+            $status = $response->status();
+            $reason = match ($status) {
+                429 => 'Rate limit exceeded (429)',
+                456 => 'Quota exceeded (456)',
+                default => 'HTTP status '.$status,
+            };
+            Log::warning('DeepLTranslator failed: '.$reason);
 
             return null;
         }
 
-        $items = $response->json('translations');
-        if (! is_array($items) || count($items) !== count($names)) {
-            return null;
-        }
+        try {
+            $items = $response->json('translations');
+            if (! is_array($items) || count($items) !== count($names)) {
+                Log::warning('DeepLTranslator response payload invalid.');
 
-        $out = [];
-        foreach ($names as $i => $name) {
-            $french = $this->restore($items[$i]['text'] ?? '');
-            if (trim($french) === '') {
                 return null;
             }
-            $out[$name] = $french;
-        }
 
-        return $out;
+            $out = [];
+            foreach ($names as $i => $name) {
+                $french = $this->restore($items[$i]['text'] ?? '');
+                if (trim($french) === '') {
+                    return null;
+                }
+                $out[$name] = $french;
+            }
+
+            return $out;
+        } catch (\Throwable $e) {
+            Log::warning('DeepLTranslator response parsing failed: '.$e->getMessage());
+
+            return null;
+        }
     }
 
     /** Escape the text for XML and wrap protected words so DeepL skips them. */

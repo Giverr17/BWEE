@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\PasswordController;
+use App\Http\Controllers\Admin\TranslateController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EventRegistrationController;
@@ -236,5 +237,6 @@ Route::prefix('switch')->name('admin.')->group(function () {
         Route::get('subscribers', fn () => view('admin.subscribers'))->name('subscribers');
         Route::get('settings', fn () => view('admin.settings'))->name('settings');
         Route::get('newsletter', fn () => view('admin.newsletter'))->name('newsletter');
+        Route::post('translate', [TranslateController::class, 'translate'])->name('translate');
     });
 });
