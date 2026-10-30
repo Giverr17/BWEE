@@ -34,6 +34,7 @@
           <li><a href="{{ route('events') }}" class="{{ request()->routeIs('events') ? 'active' : '' }}">{{ __('site.nav.events') }}</a></li>
           <li><a href="{{ route('gallery') }}" class="{{ request()->routeIs('gallery') ? 'active' : '' }}">{{ __('site.nav.gallery') }}</a></li>
           <li><a href="{{ route('partners') }}" class="{{ request()->routeIs('partners') ? 'active' : '' }}">{{ __('site.nav.partners') }}</a></li>
+          <li><a href="{{ route('involved') }}" class="{{ request()->routeIs('involved') ? 'active' : '' }}">{{ __('site.nav.involved') }}</a></li>
           <li><a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'active' : '' }}">{{ __('site.nav.contact') }}</a></li>
         </ul>
       </nav>
@@ -47,7 +48,7 @@
         </div>
 
         <a href="{{ route('involved') }}" class="nav-cta" id="navCta">
-          {{ app()->getLocale() === 'fr' ? ($settings['nav_cta_fr'] ?? __('site.nav.involved')) : ($settings['nav_cta_en'] ?? $settings['involve_sponsor_title'] ?? __('site.nav.involved')) }}
+          {{ app()->getLocale() === 'fr' ? ($settings['nav_cta_fr'] ?? $settings['nav_cta'] ?? __('site.nav.cta')) : ($settings['nav_cta_en'] ?? $settings['nav_cta'] ?? $settings['involve_sponsor_title'] ?? __('site.nav.cta')) }}
         </a>
 
         <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="mobileDrawer" aria-label="Toggle Menu">
@@ -84,13 +85,14 @@
         <li><a href="{{ route('events') }}" class="{{ request()->routeIs('events') ? 'active' : '' }}"><span class="nav-label">{{ __('site.nav.events') }}</span><span class="nav-arrow" aria-hidden="true">&rarr;</span></a></li>
         <li><a href="{{ route('gallery') }}" class="{{ request()->routeIs('gallery') ? 'active' : '' }}"><span class="nav-label">{{ __('site.nav.gallery') }}</span><span class="nav-arrow" aria-hidden="true">&rarr;</span></a></li>
         <li><a href="{{ route('partners') }}" class="{{ request()->routeIs('partners') ? 'active' : '' }}"><span class="nav-label">{{ __('site.nav.partners') }}</span><span class="nav-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="{{ route('involved') }}" class="{{ request()->routeIs('involved') ? 'active' : '' }}"><span class="nav-label">{{ __('site.nav.involved') }}</span><span class="nav-arrow" aria-hidden="true">&rarr;</span></a></li>
         <li><a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'active' : '' }}"><span class="nav-label">{{ __('site.nav.contact') }}</span><span class="nav-arrow" aria-hidden="true">&rarr;</span></a></li>
       </ul>
     </div>
 
     <div class="mobile-drawer-footer">
       <a href="{{ route('involved') }}" class="btn btn-primary drawer-cta-btn">
-        {{ app()->getLocale() === 'fr' ? ($settings['nav_cta_fr'] ?? __('site.nav.involved')) : ($settings['nav_cta_en'] ?? $settings['involve_sponsor_title'] ?? __('site.nav.involved')) }}
+        {{ app()->getLocale() === 'fr' ? ($settings['nav_cta_fr'] ?? $settings['nav_cta'] ?? __('site.nav.cta')) : ($settings['nav_cta_en'] ?? $settings['nav_cta'] ?? $settings['involve_sponsor_title'] ?? __('site.nav.cta')) }}
       </a>
       <div class="drawer-lang-row">
         <span class="drawer-lang-label">{{ app()->getLocale() === 'fr' ? 'Langue' : 'Language' }}</span>

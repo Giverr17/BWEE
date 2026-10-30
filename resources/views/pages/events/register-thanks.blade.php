@@ -38,8 +38,52 @@
           {{ __('registration.success_heading') }}
         </h2>
 
-        <p style="font-size: 1.05rem; color: var(--ink); line-height: 1.6; margin-bottom: 32px;">
+        <p style="font-size: 1.05rem; color: var(--ink); line-height: 1.6; margin-bottom: 24px;">
           {{ __('registration.success_message', ['event' => $event->title]) }}
+        </p>
+
+        {{-- Event details --}}
+        @if($event->date_label || $event->location)
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; margin-bottom: 24px; text-align: left;">
+            <p style="font-weight: 600; font-size: 1rem; margin-bottom: 10px; color: var(--on-dark);">{{ $event->title }}</p>
+            @if($event->date_label)
+              <p style="font-size: 0.9rem; color: var(--ink-soft); margin: 4px 0;">
+                📅 {{ $event->date_label }}
+              </p>
+            @endif
+            @if($event->location)
+              <p style="font-size: 0.9rem; color: var(--ink-soft); margin: 4px 0;">
+                📍 {{ $event->location }}
+              </p>
+            @endif
+          </div>
+        @endif
+
+        {{-- QR code --}}
+        @php
+          try {
+              $qrService = app(\App\Services\QrCodeService::class);
+              $qrUrl = route('events.register', $event);
+              $qrSvg = $qrService->generateSvg($qrUrl);
+          } catch (\Throwable $e) {
+              $qrSvg = null;
+          }
+        @endphp
+
+        @if($qrSvg)
+          <div style="margin-bottom: 24px;">
+            <p style="font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 10px;">{{ __('registration.qr_label') }}</p>
+            <div style="display: inline-block; background: #ffffff; padding: 16px; border-radius: 10px; max-width: 200px; width: 100%;">
+              <div style="width: 100%; height: auto; max-width: 160px; margin: 0 auto; line-height: 0;">
+                {!! $qrSvg !!}
+              </div>
+            </div>
+          </div>
+        @endif
+
+        {{-- Spam folder note --}}
+        <p style="font-size: 0.85rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 24px;">
+          {{ __('registration.spam_folder_note') }}
         </p>
       @endif
 

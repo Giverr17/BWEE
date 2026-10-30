@@ -115,12 +115,17 @@ header.site-header.header-solid {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
 }
 
+.site-header .nav-wrap {
+  max-width: 1360px;
+  padding: 0 24px;
+}
+
 .nav-wrap {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 84px;
-  gap: 20px;
+  gap: clamp(12px, 1.8vw, 24px);
 }
 
 .logo-chip {
@@ -146,13 +151,17 @@ footer .logo-img { height: 60px; }
 .nav-desktop {
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 28px;
+  justify-content: center;
+  gap: clamp(12px, 1.4vw, 24px);
   list-style: none;
-  font-size: 0.94rem;
+  font-size: clamp(0.86rem, 0.95vw, 0.94rem);
   font-weight: 500;
   margin: 0;
   padding: 0;
@@ -163,8 +172,8 @@ footer .logo-img { height: 60px; }
   opacity: 0.9;
   transition: opacity 0.2s ease, color 0.2s ease;
   position: relative;
-  padding: 6px 4px;
-  letter-spacing: 0.02em;
+  padding: 6px 3px;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 .nav-links a:hover {
@@ -183,7 +192,7 @@ footer .logo-img { height: 60px; }
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -230,14 +239,19 @@ footer .logo-img { height: 60px; }
 
 /* Nav CTA */
 .nav-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--marigold);
   color: var(--indigo-deep);
-  padding: 10px 20px;
+  padding: 9px 18px;
   border-radius: var(--radius);
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
   white-space: nowrap;
+  line-height: 1.25;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 8px rgba(201, 150, 44, 0.25);
 }
@@ -465,40 +479,44 @@ footer .logo-img { height: 60px; }
   color: rgba(251, 247, 241, 0.55);
 }
 
-/* Responsive Breakpoints for Nav */
-@media (max-width: 1240px) and (min-width: 1121px) {
-  .nav-links { gap: 18px; font-size: 0.88rem; }
-  .nav-cta { padding: 9px 16px; font-size: 0.84rem; }
-}
-
 /* French locale nav refinement: longer words fit comfortably without stretching */
 html[lang="fr"] .nav-links {
-  gap: clamp(12px, 1.4vw, 18px);
-  font-size: 0.88rem;
+  gap: clamp(8px, 1.1vw, 18px);
+  font-size: clamp(0.82rem, 0.88vw, 0.88rem);
   letter-spacing: 0;
 }
 html[lang="fr"] .nav-links a {
-  padding: 5px 2px;
+  padding: 6px 2px;
 }
 html[lang="fr"] .nav-cta {
-  padding: 9px 18px;
-  font-size: 0.86rem;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  letter-spacing: -0.01em;
 }
 
-@media (max-width: 1160px) {
-  html[lang="fr"] .nav-desktop,
-  html[lang="fr"] .nav-actions .nav-cta {
+/* Responsive Breakpoints for Nav */
+@media (max-width: 1260px) {
+  .site-header .nav-wrap { padding: 0 18px; gap: 12px; }
+  .logo-chip { padding: 6px 12px; }
+  .logo-img { height: 42px; }
+  .nav-links { gap: clamp(8px, 1.1vw, 16px); font-size: 0.85rem; }
+  .nav-actions { gap: 10px; }
+  .nav-cta { padding: 8px 14px; font-size: 0.82rem; }
+  html[lang="fr"] .nav-links { gap: clamp(6px, 0.9vw, 13px); font-size: 0.81rem; }
+  html[lang="fr"] .nav-cta { padding: 8px 12px; font-size: 0.79rem; }
+}
+
+@media (max-width: 1140px) {
+  .nav-desktop,
+  .nav-actions .nav-cta {
     display: none !important;
   }
-  html[lang="fr"] .menu-btn {
+  .menu-btn {
     display: flex;
   }
-}
-
-@media (max-width: 1120px) {
-  .nav-desktop, .nav-actions .nav-cta { display: none !important; }
-  .menu-btn { display: flex; }
-  .logo-img { height: 42px; }
+  .logo-img {
+    height: 42px;
+  }
 }
 
 @media (max-width: 600px) {

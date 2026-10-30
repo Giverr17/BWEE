@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Symfony\Component\Intl\Countries;
 
 class EventRegistration extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'event_id',
         'full_name',
@@ -20,10 +23,12 @@ class EventRegistration extends Model
         'expectations',
         'consent_at',
         'locale',
+        'newsletter_consent',
     ];
 
     protected $casts = [
         'consent_at' => 'datetime',
+        'newsletter_consent' => 'boolean',
     ];
 
     public function event(): BelongsTo

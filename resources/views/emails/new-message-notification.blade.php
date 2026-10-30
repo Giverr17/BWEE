@@ -10,5 +10,9 @@
     <p style="margin-top: 20px; font-size: 13px; color: #6B6878;">
         Just hit reply on this email to respond directly to {{ $contactMessage->name }}.
     </p>
+    <hr style="margin-top: 30px; border: none; border-top: 1px solid #E6E0D4;">
+    <p style="font-size: 12px; color: #6B6878;">
+        Black Women's Enterprise Exchange (BWEE) | Harriet Tubman Institute, York University
+    </p>
 </body>
 </html>

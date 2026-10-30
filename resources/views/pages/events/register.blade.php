@@ -218,6 +218,29 @@
             @enderror
           </div>
 
+          {{-- Newsletter consent (optional, unchecked by default) --}}
+          <div class="form-group" style="margin-top: 6px;">
+            <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; text-transform: none; font-size: 0.9rem; font-weight: 500; color: var(--ink);">
+              <input type="checkbox"
+                     name="newsletter_consent"
+                     id="reg_newsletter_consent"
+                     value="1"
+                     {{ old('newsletter_consent') ? 'checked' : '' }}
+                     style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--marigold); flex-shrink: 0;">
+              <span>
+                <strong>{{ __('registration.newsletter_consent_label') }}</strong><br>
+                <span style="font-size: 0.82rem; color: var(--ink-soft); line-height: 1.45; display: inline-block; margin-top: 4px;">
+                  {{ __('registration.newsletter_consent_text') }}
+                </span>
+              </span>
+            </label>
+          </div>
+
+          {{-- Spam folder note --}}
+          <p style="font-size: 0.82rem; color: var(--ink-soft); line-height: 1.45; margin-top: 14px;">
+            {{ __('registration.spam_folder_note') }}
+          </p>
+
           {{-- Submit button --}}
           <div style="margin-top: 10px;">
             <button type="submit"

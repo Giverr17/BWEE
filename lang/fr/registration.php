@@ -34,6 +34,10 @@ return [
     'expectations_placeholder' => 'Faites-nous part de vos attentes, objectifs ou questions...',
     'consent_label' => 'Je consens à la collecte et à l’utilisation de ces renseignements.',
     'consent_text' => 'Les renseignements recueillis sont utilisés uniquement pour gérer votre inscription et communiquer avec vous au sujet de cet événement.',
+    'newsletter_consent_label' => 'Tenez-moi informé(e) des prochains événements et programmes BWEE (facultatif)',
+    'newsletter_consent_text' => 'Cochez cette case si vous souhaitez recevoir notre infolettre et nos annonces d\'événements. Vous pouvez vous désabonner à tout moment.',
+    'spam_folder_note' => 'Une confirmation a été envoyée à votre adresse courriel. Si vous ne la voyez pas, vérifiez votre dossier de courrier indésirable et marquez-la comme non indésirable.',
+    'qr_label' => 'Partager cet événement',
     'submit_button' => 'Finaliser l’inscription',
     'submitting' => 'Inscription en cours...',
 

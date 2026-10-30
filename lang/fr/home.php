@@ -33,7 +33,7 @@ return [
     ],
     'partners' => [
         'title' => 'Partenaires',
-        'subtitle' => 'Organisé en partenariat avec l’Institut Harriet Tubman de l’Université York et la School of Women in Leadership & Business.',
+        'subtitle' => 'Un projet pilote de l\'Institut Harriet Tubman de l\'Université York, organisé en collaboration avec l\'École des femmes en leadership et en affaires.',
         'see_all' => 'Voir tous les partenaires',
         'note' => 'BWEE repose sur l’action collective, la collaboration communautaire et les partenariats stratégiques.',
     ],

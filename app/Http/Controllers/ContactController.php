@@ -5,13 +5,15 @@ namespace App\Http\Controllers;
 use App\Mail\NewMessageNotification;
 use App\Models\Message;
 use App\Models\SiteSetting;
+use App\Services\MailLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class ContactController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, MailLogService $mailLog): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
@@ -27,7 +29,17 @@ class ContactController extends Controller
         $emails = array_filter(array_map('trim', explode(',', $recipients ?? '')));
 
         if (! empty($emails)) {
-            Mail::to($emails)->send(new NewMessageNotification($message));
+            try {
+                foreach ($emails as $recipientEmail) {
+                    Mail::to($recipientEmail)->queue(new NewMessageNotification($message));
+                    $mailLog->record($recipientEmail, 'transactional', NewMessageNotification::class);
+                }
+            } catch (\Throwable $e) {
+                Log::error('Failed to queue contact notification email', [
+                    'message_id' => $message->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return redirect()

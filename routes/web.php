@@ -11,6 +11,7 @@ use App\Models\FaqItem;
 use App\Models\Founder;
 use App\Models\GalleryItem;
 use App\Models\HeroSlide;
+use App\Models\NewsletterSubscriber;
 use App\Models\Partner;
 use App\Models\Program;
 use App\Models\RoadmapItem;
@@ -105,6 +106,23 @@ Route::post('/register/{event:slug}', [EventRegistrationController::class, 'stor
     ->middleware('throttle:6,1')
     ->name('events.register.store');
 Route::get('/register/{event:slug}/thanks', [EventRegistrationController::class, 'thanks'])->name('events.register.thanks');
+
+Route::get('/unsubscribe', function (Request $request) {
+    if (! $request->hasValidSignature()) {
+        abort(403, 'This unsubscribe link is invalid or has expired.');
+    }
+
+    $email = $request->query('email');
+
+    if ($email) {
+        NewsletterSubscriber::where('email', $email)->update(['unsubscribed_at' => now()]);
+    }
+
+    $locale = $request->query('locale', 'en');
+    app()->setLocale(in_array($locale, ['en', 'fr']) ? $locale : 'en');
+
+    return view('pages.unsubscribe', ['email' => $email]);
+})->name('unsubscribe');
 
 Route::get('/lang/{locale}', function (string $locale) {
     abort_unless(in_array($locale, config('app.available_locales'), true), 404);

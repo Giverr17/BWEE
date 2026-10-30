@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -10,7 +10,7 @@ use Spatie\Translatable\HasTranslations;
 
 class Event extends Model
 {
-    use HasTranslations;
+    use HasFactory, HasTranslations;
 
     public array $translatable = ['title', 'tag', 'description', 'date_label', 'location', 'cta_text'];
 

@@ -14,6 +14,7 @@ return [
         'founders' => 'Founders',
         'partners' => 'Partners',
         'involved' => 'Get Involved',
+        'cta' => 'Partner & Sponsor',
     ],
 
     'footer' => [

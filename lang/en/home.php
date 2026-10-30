@@ -33,7 +33,7 @@ return [
     ],
     'partners' => [
         'title' => 'Partners',
-        'subtitle' => 'Hosted in partnership with the Harriet Tubman Institute at York University and the School of Women in Leadership & Business.',
+        'subtitle' => 'A pilot of the Harriet Tubman Institute at York University, hosted in collaboration with the School of Women in Leadership & Business.',
         'see_all' => 'See all partners',
         'note' => 'BWEE relies on collective action, community collaboration, and strategic partnerships.',
     ],

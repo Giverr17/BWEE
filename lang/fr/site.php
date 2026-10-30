@@ -14,6 +14,7 @@ return [
         'founders' => 'Cofondatrices',
         'partners' => 'Partenaires',
         'involved' => 'Participer',
+        'cta' => 'Partenaire & Commanditaire',
     ],
 
     'footer' => [

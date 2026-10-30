@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\RegistrationConfirmation;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\SiteSetting;
+use App\Services\MailLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Symfony\Component\Intl\Countries;
 
@@ -35,7 +39,7 @@ class EventRegistrationController extends Controller
     /**
      * Store a new event registration.
      */
-    public function store(Request $request, Event $event)
+    public function store(Request $request, Event $event, MailLogService $mailLog)
     {
         if (! $event->isRegistrationOpen()) {
             return redirect()->route('events.register', $event);
@@ -62,6 +66,7 @@ class EventRegistrationController extends Controller
             'organization' => ['nullable', 'string', 'max:150'],
             'expectations' => ['required', 'string', 'min:5', 'max:1000'],
             'consent' => ['accepted'],
+            'newsletter_consent' => ['nullable', 'boolean'],
         ]);
 
         $normalizedEmail = strtolower(trim($validated['email']));
@@ -77,7 +82,7 @@ class EventRegistrationController extends Controller
 
         $locale = in_array(app()->getLocale(), ['en', 'fr'], true) ? app()->getLocale() : 'en';
 
-        $event->registrations()->create([
+        $registration = $event->registrations()->create([
             'full_name' => trim($validated['full_name']),
             'email' => $normalizedEmail,
             'phone' => trim($validated['phone']),
@@ -88,7 +93,20 @@ class EventRegistrationController extends Controller
             'expectations' => trim($validated['expectations']),
             'consent_at' => now(),
             'locale' => $locale,
+            'newsletter_consent' => ! empty($validated['newsletter_consent']),
         ]);
+
+        // Queue confirmation email -- never let a mail failure break the registration
+        try {
+            Mail::to($registration->email)->queue(new RegistrationConfirmation($registration));
+            $mailLog->record($registration->email, 'transactional', RegistrationConfirmation::class);
+        } catch (\Throwable $e) {
+            Log::error('Failed to queue registration confirmation email', [
+                'registration_id' => $registration->id,
+                'email' => $registration->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return redirect()->route('events.register.thanks', $event)->with('registration_success', true);
     }

@@ -13,10 +13,16 @@ class NewMessageNotification extends Mailable
 
     public function __construct(public Message $contactMessage) {}
 
-    public function build()
+    public function build(): static
     {
-        return $this->subject('New message on BWEE: '.($this->contactMessage->subject ?: 'No subject'))
+        $from = config('mail.from.address');
+        $fromName = config('mail.from.name');
+
+        return $this
+            ->from($from, $fromName)
+            ->subject('New message on BWEE: '.($this->contactMessage->subject ?: 'No subject'))
             ->replyTo($this->contactMessage->email, $this->contactMessage->name)
-            ->view('emails.new-message-notification');
+            ->view('emails.new-message-notification')
+            ->text('emails.new-message-notification-text');
     }
 }

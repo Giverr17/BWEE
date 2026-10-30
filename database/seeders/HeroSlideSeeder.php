@@ -30,8 +30,8 @@ class HeroSlideSeeder extends Seeder
                 'fr' => 'Une initiative bilingue fondée sur la recherche',
             ],
             'bio' => [
-                'en' => 'Hosted at the Harriet Tubman Institute, York University.',
-                'fr' => 'Accueillie par l’Institut Harriet Tubman de l’Université York.',
+                'en' => 'A pilot of the Harriet Tubman Institute, York University.',
+                'fr' => 'Projet pilote de l\u2019Institut Harriet Tubman de l\u2019Universit\u00e9 York.',
             ],
             'cta_primary_text' => [
                 'en' => 'Partner & Sponsor',

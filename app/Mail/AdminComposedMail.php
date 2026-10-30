@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class AdminComposedMail extends Mailable
@@ -13,12 +14,37 @@ class AdminComposedMail extends Mailable
     public function __construct(
         public string $subjectLine,
         public string $bodyText,
+        public string $unsubscribeUrl = '',
     ) {}
 
-    public function build()
+    public function headers(): Headers
     {
-        return $this->subject($this->subjectLine)
+        $headers = [];
+
+        if ($this->unsubscribeUrl) {
+            $headers['List-Unsubscribe'] = '<'.$this->unsubscribeUrl.'>';
+            $headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+        }
+
+        return new Headers(text: $headers);
+    }
+
+    public function build(): static
+    {
+        $from = config('mail.from.address');
+        $fromName = config('mail.from.name');
+        $replyTo = config('mail.reply_to.address', config('mail.from.address'));
+        $replyToName = config('mail.reply_to.name', config('mail.from.name'));
+
+        return $this
+            ->from($from, $fromName)
+            ->subject($this->subjectLine)
+            ->replyTo($replyTo, $replyToName)
             ->view('emails.admin-composed')
-            ->with(['bodyText' => $this->bodyText]);
+            ->text('emails.admin-composed-text')
+            ->with([
+                'bodyText' => $this->bodyText,
+                'unsubscribeUrl' => $this->unsubscribeUrl,
+            ]);
     }
 }
