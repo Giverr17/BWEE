@@ -63,6 +63,12 @@ class SiteSetting extends Model
             }
         }
 
+        foreach ([1, 2, 3] as $i) {
+            if (isset($settings["stat_{$i}_number"]) && ! isset($settings["stat_{$i}_value"])) {
+                $settings["stat_{$i}_value"] = $settings["stat_{$i}_number"];
+            }
+        }
+
         return $settings;
     }
 }

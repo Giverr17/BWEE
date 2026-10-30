@@ -1,10 +1,10 @@
 {{ $bodyText }}
 
 ---
-Black Women's Enterprise Exchange (BWEE)
-Harriet Tubman Institute, York University
-https://bweeofficial.com
+{{ __('mail.newsletter.footer_title', [], $locale) }}
+{{ __('mail.newsletter.footer_affiliation', [], $locale) }}
+https://{{ __('mail.newsletter.footer_website', [], $locale) }}
 @if($unsubscribeUrl)
 
-To unsubscribe / Se desabonner: {{ $unsubscribeUrl }}
+{{ __('mail.newsletter.unsubscribe_notice', [], $locale) }} {{ $unsubscribeUrl }}
 @endif

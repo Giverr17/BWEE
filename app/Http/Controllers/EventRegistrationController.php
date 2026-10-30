@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\RegistrationConfirmation;
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Models\NewsletterSubscriber;
 use App\Models\SiteSetting;
 use App\Services\MailLogService;
 use Illuminate\Http\Request;
@@ -66,6 +67,7 @@ class EventRegistrationController extends Controller
             'organization' => ['nullable', 'string', 'max:150'],
             'expectations' => ['required', 'string', 'min:5', 'max:1000'],
             'consent' => ['accepted'],
+            'newsletter_opt_in' => ['nullable', 'boolean'],
             'newsletter_consent' => ['nullable', 'boolean'],
         ]);
 
@@ -82,6 +84,8 @@ class EventRegistrationController extends Controller
 
         $locale = in_array(app()->getLocale(), ['en', 'fr'], true) ? app()->getLocale() : 'en';
 
+        $isOptedIn = ! empty($validated['newsletter_opt_in']) || ! empty($validated['newsletter_consent']);
+
         $registration = $event->registrations()->create([
             'full_name' => trim($validated['full_name']),
             'email' => $normalizedEmail,
@@ -93,12 +97,39 @@ class EventRegistrationController extends Controller
             'expectations' => trim($validated['expectations']),
             'consent_at' => now(),
             'locale' => $locale,
-            'newsletter_consent' => ! empty($validated['newsletter_consent']),
+            'newsletter_consent' => $isOptedIn,
+            'newsletter_opt_in' => $isOptedIn,
+            'consented_at' => $isOptedIn ? now() : null,
         ]);
 
-        // Queue confirmation email -- never let a mail failure break the registration
+        if ($isOptedIn) {
+            $subscriber = NewsletterSubscriber::where('email', $normalizedEmail)->first();
+            if ($subscriber) {
+                if (! $subscriber->unsubscribed_at) {
+                    $subscriber->update([
+                        'name' => $subscriber->name ?: trim($validated['full_name']),
+                        'locale' => $locale,
+                        'source' => $subscriber->source ?: 'registration',
+                        'consented_at' => $subscriber->consented_at ?: now(),
+                    ]);
+                }
+            } else {
+                NewsletterSubscriber::create([
+                    'email' => $normalizedEmail,
+                    'name' => trim($validated['full_name']),
+                    'locale' => $locale,
+                    'source' => 'registration',
+                    'subscribed_at' => now(),
+                    'consented_at' => now(),
+                ]);
+            }
+        }
+
+        // Queue confirmation email - never let a mail failure break the registration
         try {
-            Mail::to($registration->email)->queue(new RegistrationConfirmation($registration));
+            Mail::to($registration->email)
+                ->locale($locale)
+                ->queue(new RegistrationConfirmation($registration));
             $mailLog->record($registration->email, 'transactional', RegistrationConfirmation::class);
         } catch (\Throwable $e) {
             Log::error('Failed to queue registration confirmation email', [

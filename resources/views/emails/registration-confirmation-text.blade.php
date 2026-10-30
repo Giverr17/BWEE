@@ -1,45 +1,21 @@
-@if(($registration->locale ?? 'en') === 'fr')
-Confirmation d'inscription - {{ $registration->event->title ?? '' }}
+{{ __('mail.registration_confirmation.heading', [], $locale) }} - {{ $eventTitle }}
 
-Bonjour {{ $registration->full_name }},
+{{ __('mail.registration_confirmation.greeting', ['name' => $registration->full_name], $locale) }}
 
-Votre inscription a bien ete enregistree pour :
+{{ __('mail.registration_confirmation.intro', [], $locale) }}
 
-{{ $registration->event->title ?? '' }}
-@if($registration->event->date_label)
-Date : {{ $registration->event->date_label }}
+{{ $eventTitle }}
+@if(! empty($dateLabel))
+{{ __('mail.registration_confirmation.date', [], $locale) }} {{ $dateLabel }}
 @endif
-@if($registration->event->location)
-Lieu : {{ $registration->event->location }}
-@endif
-
-Nous avons hate de vous accueillir.
-
-Vous recevez cet email parce que vous vous etes inscrit(e) a cet evenement BWEE.
-
-Black Women's Enterprise Exchange (BWEE)
-Harriet Tubman Institute, York University
-https://bweeofficial.com
-@else
-Registration Confirmed - {{ $registration->event->title ?? '' }}
-
-Hello {{ $registration->full_name }},
-
-Your registration has been confirmed for:
-
-{{ $registration->event->title ?? '' }}
-@if($registration->event->date_label)
-Date: {{ $registration->event->date_label }}
-@endif
-@if($registration->event->location)
-Location: {{ $registration->event->location }}
+@if(! empty($location))
+{{ __('mail.registration_confirmation.location', [], $locale) }} {{ $location }}
 @endif
 
-We look forward to having you with us.
+{{ __('mail.registration_confirmation.closing', [], $locale) }}
 
-You are receiving this email because you registered for this BWEE event.
+{{ __('mail.registration_confirmation.reason', [], $locale) }}
 
-Black Women's Enterprise Exchange (BWEE)
-Harriet Tubman Institute, York University
-https://bweeofficial.com
-@endif
+{{ __('mail.registration_confirmation.footer_title', [], $locale) }}
+{{ __('mail.registration_confirmation.footer_affiliation', [], $locale) }}
+https://{{ __('mail.registration_confirmation.footer_website', [], $locale) }}

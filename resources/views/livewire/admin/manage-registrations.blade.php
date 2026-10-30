@@ -10,6 +10,8 @@ new class extends Component
 
     public $search = '';
 
+    public $newsletterFilter = '';
+
     public $expandedRows = [];
 
     public function mount()
@@ -54,6 +56,21 @@ new class extends Component
                         ->orWhere('organization', 'like', $term);
                 });
             })
+            ->when($this->newsletterFilter === 'yes', function ($query) {
+                $query->where(function ($q) {
+                    $q->where('newsletter_opt_in', true)
+                        ->orWhere('newsletter_consent', true);
+                });
+            })
+            ->when($this->newsletterFilter === 'no', function ($query) {
+                $query->where(function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->where('newsletter_opt_in', false)->orWhereNull('newsletter_opt_in');
+                    })->where(function ($sub) {
+                        $sub->where('newsletter_consent', false)->orWhereNull('newsletter_consent');
+                    });
+                });
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -67,7 +84,6 @@ new class extends Component
 
         return response()->streamDownload(function () use ($registrations) {
             $handle = fopen('php://output', 'w');
-            // Write UTF-8 BOM for Microsoft Excel compatibility
             fwrite($handle, "\xEF\xBB\xBF");
 
             fputcsv($handle, [
@@ -84,6 +100,8 @@ new class extends Component
                 'Expectations',
                 'Consent Timestamp',
                 'Locale',
+                'Newsletter Opt-In',
+                'Newsletter Consented At',
                 'Registered At',
             ]);
 
@@ -102,6 +120,8 @@ new class extends Component
                     $reg->expectations,
                     $reg->consent_at ? $reg->consent_at->toIso8601String() : '',
                     $reg->locale,
+                    ($reg->newsletter_opt_in || $reg->newsletter_consent) ? 'Yes' : 'No',
+                    $reg->consented_at ? $reg->consented_at->toIso8601String() : '',
                     $reg->created_at ? $reg->created_at->format('Y-m-d H:i:s') : '',
                 ]);
             }
@@ -130,6 +150,21 @@ new class extends Component
                             ->orWhere('organization', 'like', $term);
                     });
                 })
+                ->when($this->newsletterFilter === 'yes', function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('newsletter_opt_in', true)
+                            ->orWhere('newsletter_consent', true);
+                    });
+                })
+                ->when($this->newsletterFilter === 'no', function ($query) {
+                    $query->where(function ($q) {
+                        $q->where(function ($sub) {
+                            $sub->where('newsletter_opt_in', false)->orWhereNull('newsletter_opt_in');
+                        })->where(function ($sub) {
+                            $sub->where('newsletter_consent', false)->orWhereNull('newsletter_consent');
+                        });
+                    });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
         }
@@ -144,10 +179,10 @@ new class extends Component
 ?>
 
 <div>
-    {{-- Header Controls: Event Selector, Search, Export --}}
+    {{-- Header Controls: Event Selector, Search, Filter, Export --}}
     <div class="card" style="margin-bottom:20px;padding:16px 20px">
         <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
-            {{-- Left: Event dropdown & Search --}}
+            {{-- Left: Event dropdown, Search & Newsletter filter --}}
             <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;flex:1;min-width:280px">
                 <div style="min-width:220px;flex:1">
                     <label style="display:block;font-size:.72rem;letter-spacing:.04em;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Select Event</label>
@@ -162,7 +197,7 @@ new class extends Component
                     </select>
                 </div>
 
-                <div style="min-width:200px;flex:1">
+                <div style="min-width:180px;flex:1">
                     <label style="display:block;font-size:.72rem;letter-spacing:.04em;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Search Registrations</label>
                     <input type="text"
                            wire:model.live.debounce.300ms="search"
@@ -170,9 +205,18 @@ new class extends Component
                            class="input"
                            style="width:100%">
                 </div>
+
+                <div style="min-width:160px">
+                    <label style="display:block;font-size:.72rem;letter-spacing:.04em;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Newsletter</label>
+                    <select wire:model.live="newsletterFilter" class="input" style="width:100%">
+                        <option value="">All Registrants</option>
+                        <option value="yes">Newsletter (Yes)</option>
+                        <option value="no">No Newsletter (No)</option>
+                    </select>
+                </div>
             </div>
 
-            {{-- Right: Export CSV & Stats --}}
+            {{-- Right: Export CSV & Message action --}}
             <div style="display:flex;align-items:center;gap:12px;margin-top:auto">
                 @if($selectedEvent && $registrations->isNotEmpty())
                     <button type="button"
@@ -182,6 +226,14 @@ new class extends Component
                         <span>📥</span>
                         <span>Export CSV</span>
                     </button>
+                @endif
+                @if($selectedEvent)
+                    <a href="{{ route('admin.newsletter', ['audience' => 'event', 'event_id' => $selectedEvent->id]) }}"
+                       class="btn-ghost"
+                       style="width:auto;margin-top:0;display:inline-flex;align-items:center;gap:6px;font-size:.85rem;padding:8px 14px;text-decoration:none">
+                        <span>✉</span>
+                        <span>Message Event</span>
+                    </a>
                 @endif
             </div>
         </div>
@@ -216,6 +268,7 @@ new class extends Component
                     <th style="text-align:left;padding:12px 14px;font-size:.72rem;letter-spacing:.04em;color:var(--muted)">NATIONALITY</th>
                     <th style="text-align:left;padding:12px 14px;font-size:.72rem;letter-spacing:.04em;color:var(--muted)">PROFESSION</th>
                     <th style="text-align:left;padding:12px 14px;font-size:.72rem;letter-spacing:.04em;color:var(--muted)">ORGANIZATION</th>
+                    <th style="text-align:left;padding:12px 14px;font-size:.72rem;letter-spacing:.04em;color:var(--muted)">NEWSLETTER</th>
                     <th style="text-align:left;padding:12px 14px;font-size:.72rem;letter-spacing:.04em;color:var(--muted)">REGISTERED</th>
                     <th style="padding:12px 14px;text-align:right"></th>
                 </tr>
@@ -245,6 +298,13 @@ new class extends Component
                         <td style="padding:12px 14px;font-size:.84rem;color:var(--muted)">
                             {{ $reg->organization ?: '-' }}
                         </td>
+                        <td style="padding:12px 14px;font-size:.82rem">
+                            @if($reg->newsletter_opt_in || $reg->newsletter_consent)
+                                <span style="color:#10b981;font-weight:600">Yes</span>
+                            @else
+                                <span style="color:var(--muted)">No</span>
+                            @endif
+                        </td>
                         <td style="padding:12px 14px;font-size:.8rem;color:var(--muted);white-space:nowrap">
                             {{ $reg->created_at ? $reg->created_at->format('M j, Y') : '' }}
                         </td>
@@ -267,7 +327,7 @@ new class extends Component
                     </tr>
                     @if($isExpanded)
                         <tr style="background:var(--paper-dim);border-bottom:1px solid var(--line)">
-                            <td colspan="9" style="padding:14px 18px">
+                            <td colspan="10" style="padding:14px 18px">
                                 <div style="display:flex;flex-direction:column;gap:6px">
                                     <div style="font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700">
                                         Expectations &amp; Goals:
@@ -275,9 +335,11 @@ new class extends Component
                                     <div style="font-size:.9rem;color:var(--ink);line-height:1.55;white-space:pre-line;background:var(--paper);padding:12px 16px;border-radius:8px;border:1px solid var(--line)">
                                         {{ $reg->expectations }}
                                     </div>
-                                    <div style="display:flex;gap:20px;margin-top:4px;font-size:.76rem;color:var(--muted)">
+                                    <div style="display:flex;flex-wrap:wrap;gap:20px;margin-top:4px;font-size:.76rem;color:var(--muted)">
                                         <span>Locale: <strong>{{ strtoupper($reg->locale) }}</strong></span>
                                         <span>Consent recorded: <strong>{{ $reg->consent_at ? $reg->consent_at->format('M j, Y H:i T') : 'Yes' }}</strong></span>
+                                        <span>Newsletter: <strong>{{ ($reg->newsletter_opt_in || $reg->newsletter_consent) ? 'Yes' : 'No' }}</strong></span>
+                                        <span>Newsletter consented at: <strong>{{ $reg->consented_at ? $reg->consented_at->format('M j, Y H:i T') : '-' }}</strong></span>
                                     </div>
                                 </div>
                             </td>
@@ -285,7 +347,7 @@ new class extends Component
                     @endif
                 @empty
                     <tr>
-                        <td colspan="9" style="padding:32px 16px;text-align:center;color:var(--muted)">
+                        <td colspan="10" style="padding:32px 16px;text-align:center;color:var(--muted)">
                             @if($selectedEvent)
                                 @if($search)
                                     No registrations matching "{{ $search }}" found for this event.

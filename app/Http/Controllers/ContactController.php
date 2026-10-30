@@ -23,7 +23,8 @@ class ContactController extends Controller
             'body' => ['required', 'string', 'max:5000'],
         ]);
 
-        $message = Message::create($validated);
+        $locale = in_array(app()->getLocale(), ['en', 'fr'], true) ? app()->getLocale() : 'en';
+        $message = Message::create(array_merge($validated, ['locale' => $locale]));
 
         $recipients = SiteSetting::where('key', 'contact_notification_emails')->value('value');
         $emails = array_filter(array_map('trim', explode(',', $recipients ?? '')));

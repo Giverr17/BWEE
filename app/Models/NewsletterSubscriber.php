@@ -11,8 +11,11 @@ class NewsletterSubscriber extends Model
 
     protected $fillable = [
         'email',
+        'locale',
+        'source',
         'name',
         'subscribed_at',
+        'consented_at',
         'unsubscribed_at',
     ];
 
@@ -20,6 +23,7 @@ class NewsletterSubscriber extends Model
     {
         return [
             'subscribed_at' => 'datetime',
+            'consented_at' => 'datetime',
             'unsubscribed_at' => 'datetime',
         ];
     }

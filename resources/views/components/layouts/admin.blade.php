@@ -98,6 +98,56 @@
             <main class="adm-content">{{ $slot }}</main>
         </div>
     </div>
+
+    {{-- Shared Toast Component --}}
+    <div x-data="{
+        toasts: [],
+        add(type, message) {
+            if (!message) return;
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, type, message });
+            setTimeout(() => this.remove(id), 4000);
+        },
+        remove(id) {
+            this.toasts = this.toasts.filter(t => t.id !== id);
+        }
+    }"
+    x-init="
+        @if (session('status'))
+            add('success', {{ json_encode(session('status')) }});
+        @elseif (session('success'))
+            add('success', {{ json_encode(session('success')) }});
+        @elseif (session('error'))
+            add('error', {{ json_encode(session('error')) }});
+        @elseif (session('notify'))
+            add('info', {{ json_encode(session('notify')) }});
+        @endif
+    "
+    @notify.window="add('success', typeof $event.detail === 'string' ? $event.detail : ($event.detail?.message || ($event.detail && $event.detail[0]) || 'Saved.'))"
+    @toast.window="add($event.detail?.type || 'success', $event.detail?.message || (typeof $event.detail === 'string' ? $event.detail : 'Action completed.'))"
+    role="status"
+    aria-live="polite"
+    style="position: fixed; top: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; max-width: 380px; width: calc(100vw - 40px);"
+    >
+        <template x-for="t in toasts" :key="t.id">
+            <div x-show="true"
+                 x-transition
+                 style="pointer-events: auto; padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);"
+                 :style="t.type === 'error'
+                     ? 'background: var(--danger-bg); color: var(--danger); border: 1px solid #F3C9C6;'
+                     : (t.type === 'info'
+                         ? 'background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;'
+                         : 'background: var(--ok-bg); color: var(--ok); border: 1px solid #BFE0CF;')"
+            >
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span x-text="t.type === 'error' ? '✕' : (t.type === 'info' ? 'ℹ' : '✓')" style="font-weight: 700;"></span>
+                    <span x-text="t.message"></span>
+                </div>
+                <button type="button" @click="remove(t.id)" aria-label="Dismiss notification" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 4px; color: inherit; opacity: 0.7;">&times;</button>
+            </div>
+        </template>
+    </div>
+
     @livewireScripts
     <script>
         document.addEventListener('DOMContentLoaded', function () {

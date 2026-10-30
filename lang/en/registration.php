@@ -34,7 +34,7 @@ return [
     'expectations_placeholder' => 'Tell us about your expectations, goals, or questions...',
     'consent_label' => 'I consent to the collection and use of this information.',
     'consent_text' => 'The information collected is used solely to manage your registration and communicate with you about this event.',
-    'newsletter_consent_label' => 'Keep me informed about future BWEE events and programs (optional)',
+    'newsletter_consent_label' => 'I would like to receive the BWEE newsletter and updates (optional)',
     'newsletter_consent_text' => 'Tick this box if you would like to receive our newsletter and event announcements. You can unsubscribe at any time.',
     'spam_folder_note' => 'A confirmation was sent to your email. If you do not see it, check your spam folder and mark it as not spam.',
     'qr_label' => 'Share this event',

@@ -24,11 +24,15 @@ class EventRegistration extends Model
         'consent_at',
         'locale',
         'newsletter_consent',
+        'newsletter_opt_in',
+        'consented_at',
     ];
 
     protected $casts = [
         'consent_at' => 'datetime',
         'newsletter_consent' => 'boolean',
+        'newsletter_opt_in' => 'boolean',
+        'consented_at' => 'datetime',
     ];
 
     public function event(): BelongsTo

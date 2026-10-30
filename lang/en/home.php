@@ -64,5 +64,7 @@ return [
         'aria' => 'Email address',
         'button' => 'Subscribe',
         'success' => 'Thank you! You are now subscribed.',
+        'already' => 'You are already subscribed to our newsletter.',
+        'rate_limited' => 'Too many attempts. Please try again in a few moments.',
     ],
 ];

@@ -7,15 +7,14 @@
     <hr style="margin-top: 30px; border: none; border-top: 1px solid #E6E0D4;">
 
     <p style="font-size: 12px; color: #6B6878; line-height: 1.5;">
-        Black Women's Enterprise Exchange (BWEE)<br>
-        Harriet Tubman Institute, York University<br>
-        <a href="https://bweeofficial.com" style="color: #6B6878;">bweeofficial.com</a>
+        {{ __('mail.newsletter.footer_title', [], $locale) }}<br>
+        {{ __('mail.newsletter.footer_affiliation', [], $locale) }}<br>
+        <a href="https://{{ __('mail.newsletter.footer_website', [], $locale) }}" style="color: #6B6878;">{{ __('mail.newsletter.footer_website', [], $locale) }}</a>
     </p>
 
     @if($unsubscribeUrl)
         <p style="font-size: 11px; color: #9B9AA7; margin-top: 12px;">
-            <a href="{{ $unsubscribeUrl }}" style="color: #9B9AA7;">Unsubscribe</a> from this mailing list /
-            <a href="{{ $unsubscribeUrl }}" style="color: #9B9AA7;">Se desabonner</a> de cette liste
+            <a href="{{ $unsubscribeUrl }}" style="color: #9B9AA7;">{{ __('mail.newsletter.unsubscribe', [], $locale) }}</a>
         </p>
     @endif
 

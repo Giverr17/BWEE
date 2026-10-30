@@ -206,6 +206,8 @@ Route::prefix('switch')->name('admin.')->group(function () {
                     'Expectations',
                     'Consent Timestamp',
                     'Locale',
+                    'Newsletter Opt-In',
+                    'Newsletter Consented At',
                     'Registered At',
                 ]);
                 foreach ($registrations as $reg) {
@@ -223,6 +225,8 @@ Route::prefix('switch')->name('admin.')->group(function () {
                         $reg->expectations,
                         $reg->consent_at ? $reg->consent_at->toIso8601String() : '',
                         $reg->locale,
+                        ($reg->newsletter_opt_in || $reg->newsletter_consent) ? 'Yes' : 'No',
+                        $reg->consented_at ? $reg->consented_at->toIso8601String() : '',
                         $reg->created_at ? $reg->created_at->format('Y-m-d H:i:s') : '',
                     ]);
                 }

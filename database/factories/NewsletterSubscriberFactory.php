@@ -11,9 +11,11 @@ class NewsletterSubscriberFactory extends Factory
         return [
             'email' => $this->faker->unique()->safeEmail(),
             'name' => $this->faker->name(),
+            'locale' => 'en',
+            'source' => 'web',
             'subscribed_at' => now(),
+            'consented_at' => now(),
             'unsubscribed_at' => null,
         ];
     }
 }
-

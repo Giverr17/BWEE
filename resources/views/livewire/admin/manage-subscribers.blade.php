@@ -61,7 +61,7 @@ new class extends Component
             <tbody>
                 @forelse ($items as $item)
                 <tr style="border-bottom:1px solid var(--line)">
-                    <td style="padding:14px 16px">{{ $item->name ?: '—' }}</td>
+                    <td style="padding:14px 16px">{{ $item->name ?: '-' }}</td>
                     <td style="padding:14px 16px;font-weight:500">{{ $item->email }}</td>
                     <td style="padding:14px 16px;color:var(--muted);font-size:.85rem">{{ $item->subscribed_at?->format('M j, Y') }}</td>
                     <td style="padding:14px 16px;text-align:right">

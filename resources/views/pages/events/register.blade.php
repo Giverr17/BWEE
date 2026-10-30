@@ -218,14 +218,14 @@
             @enderror
           </div>
 
-          {{-- Newsletter consent (optional, unchecked by default) --}}
+          {{-- Newsletter opt-in (optional, unchecked by default) --}}
           <div class="form-group" style="margin-top: 6px;">
             <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; text-transform: none; font-size: 0.9rem; font-weight: 500; color: var(--ink);">
               <input type="checkbox"
-                     name="newsletter_consent"
-                     id="reg_newsletter_consent"
+                     name="newsletter_opt_in"
+                     id="reg_newsletter_opt_in"
                      value="1"
-                     {{ old('newsletter_consent') ? 'checked' : '' }}
+                     {{ old('newsletter_opt_in', old('newsletter_consent')) ? 'checked' : '' }}
                      style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--marigold); flex-shrink: 0;">
               <span>
                 <strong>{{ __('registration.newsletter_consent_label') }}</strong><br>

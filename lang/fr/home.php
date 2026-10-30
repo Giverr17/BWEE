@@ -64,5 +64,7 @@ return [
         'aria' => 'Adresse courriel',
         'button' => 'S’abonner',
         'success' => 'Merci ! Vous êtes maintenant abonné(e).',
+        'already' => 'Vous êtes déjà abonné(e) à notre infolettre.',
+        'rate_limited' => 'Trop de tentatives. Veuillez réessayer dans quelques instants.',
     ],
 ];

@@ -15,7 +15,12 @@ class AdminComposedMail extends Mailable
         public string $subjectLine,
         public string $bodyText,
         public string $unsubscribeUrl = '',
-    ) {}
+        ?string $locale = null,
+    ) {
+        if ($locale) {
+            $this->locale = $locale;
+        }
+    }
 
     public function headers(): Headers
     {
@@ -36,6 +41,8 @@ class AdminComposedMail extends Mailable
         $replyTo = config('mail.reply_to.address', config('mail.from.address'));
         $replyToName = config('mail.reply_to.name', config('mail.from.name'));
 
+        $locale = $this->locale ?: app()->getLocale();
+
         return $this
             ->from($from, $fromName)
             ->subject($this->subjectLine)
@@ -45,6 +52,7 @@ class AdminComposedMail extends Mailable
             ->with([
                 'bodyText' => $this->bodyText,
                 'unsubscribeUrl' => $this->unsubscribeUrl,
+                'locale' => $locale,
             ]);
     }
 }

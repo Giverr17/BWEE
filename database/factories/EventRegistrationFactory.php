@@ -22,6 +22,8 @@ class EventRegistrationFactory extends Factory
             'consent_at' => now(),
             'locale' => 'en',
             'newsletter_consent' => false,
+            'newsletter_opt_in' => false,
+            'consented_at' => null,
         ];
     }
 }
